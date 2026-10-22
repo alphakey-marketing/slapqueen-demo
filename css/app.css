@@ -164,3 +164,5 @@ h2.ttl{font-size:22px;margin:8px 0 12px}h3{margin:16px 0 8px;font-size:15px;colo
 .ht-tag{position:absolute;top:calc(var(--safe-t) + 14px);left:0;right:0;text-align:center;color:#ff9fc0;letter-spacing:2px;font-size:14px;text-shadow:0 0 8px #f06292}
 .ht-box{position:absolute;left:10px;right:10px;bottom:calc(14px + var(--safe-b));min-height:120px;background:linear-gradient(180deg,#2a0a2eee,#0a0310f2);border:1px solid #ff9fc088;border-radius:16px;padding:20px 16px 14px}
 .ht-box b{position:absolute;top:-14px;left:14px;padding:2px 14px;border-radius:99px;font-size:14px;color:#fff}.ht-box p{margin:0;font-size:17px;line-height:1.6}.ht-box p.nar{color:#d9c8e4;font-style:italic}.ht-box p.think{color:#ffd9e4}.ht-box i{position:absolute;right:14px;bottom:8px;color:var(--gold);font-style:normal}
+
+.hdia{display:flex;align-items:center;gap:2px;font-size:12px;padding:2px 7px;border-radius:9px;background:#0007;border:1px solid #f5c46b66;color:#f5c46b;white-space:nowrap}

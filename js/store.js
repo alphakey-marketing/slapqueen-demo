@@ -46,8 +46,8 @@ const Eco = {
   addTicket(n = 1, cap = false) { Eco.tickets(); const s = Store.s; if (cap) s.tickets = Math.min(CONFIG.maxTickets, s.tickets + n); else s.tickets += n; if (s.tickets >= CONFIG.maxTickets) s.tAt = Date.now(); Store.save(); },
   useTicket() { if (Eco.isVip() || Store.s.own.season) return true; Eco.tickets(); const s = Store.s; if (s.tickets <= 0) return false; if (s.tickets >= CONFIG.maxTickets) s.tAt = Date.now(); s.tickets--; Store.save(); return true; },
   hasTicket: () => Eco.isVip() || Store.s.own.season || Eco.tickets() > 0,
-  addDia(n, src) { Store.s.dia += n; Store.save(); Analytics.track('dia_gain', { n, src }); },
-  spendDia(n, why) { if (Store.s.dia < n) return false; Store.s.dia -= n; Store.save(); Analytics.track('dia_spend', { n, why }); return true; },
+  addDia(n, src) { Store.s.dia += n; Store.save(); Analytics.track('dia_gain', { n, src }); if (typeof Player !== 'undefined' && Player.hud) Player.hud(); },
+  spendDia(n, why) { if (Store.s.dia < n) return false; Store.s.dia -= n; Store.save(); Analytics.track('dia_spend', { n, why }); if (typeof Player !== 'undefined' && Player.hud) Player.hud(); return true; },
   adsLeft() { const a = Store.s.ads, k = dayKey(); if (a.day !== k) { a.day = k; a.n = 0; } return Eco.isVip() ? 0 : CONFIG.adDailyCap - a.n; },
   countAd() { Eco.adsLeft(); Store.s.ads.n++; Store.save(); },
   // 解鎖日：本機日期 08:00 為界

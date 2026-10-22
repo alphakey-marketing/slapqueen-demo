@@ -30,7 +30,7 @@ const Player = {
 
   tpl() {
     return `<div class="st-bg"></div><div class="st-chars"><div class="char" data-pos="l"></div><div class="char" data-pos="c"></div><div class="char" data-pos="r"></div></div><div class="st-fx"></div>
-<div class="st-hud"><button class="hbtn" data-p="menu" aria-label="選單">☰</button><div class="ep-title"></div><div class="rage" title="逆襲值"><span>🔥</span><div class="rage-bar"><i></i></div><b>0</b></div><button class="hbtn" data-p="auto">自動</button><button class="hbtn" data-p="ff">快進</button></div>
+<div class="st-hud"><button class="hbtn" data-p="menu" aria-label="選單">☰</button><div class="ep-title"></div><div class="hdia" title="鑽石">💎<b></b></div><div class="rage" title="逆襲值"><span>🔥</span><div class="rage-bar"><i></i></div><b>0</b></div><button class="hbtn" data-p="auto">自動</button><button class="hbtn" data-p="ff">快進</button></div>
 <div class="st-box"><div class="name"></div><div class="txt"></div><div class="nx">▼</div></div><div class="st-choice"></div><div class="st-layer"></div>`;
   },
   bind() {
@@ -54,6 +54,7 @@ const Player = {
     const P = this.P, r = this.$('.rage'); if (!r) return;
     $('i', r).style.width = P.rage + '%'; $('b', r).textContent = P.rage;
     r.classList.toggle('full', P.rage >= 100);
+    const hd = this.$('.hdia b'); if (hd) hd.textContent = Store.s.dia;
     this.$('[data-p=auto]').classList.toggle('on', !!Store.s.set.auto);
     this.$('[data-p=ff]').classList.toggle('on', this.ff);
   },

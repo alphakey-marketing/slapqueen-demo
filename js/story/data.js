@@ -6,7 +6,7 @@ window.THEME = {
   item: { id: 'precog', name: '預知卡', icon: '🃏', desc: '提前知道敵人陰謀，解鎖隱藏選項' },
   rage: { name: '逆襲值', icon: '🔥' },
   men: ['gu', 'wen', 'xiao'],
-  routeName: { gu: '神秘權貴・資本碾壓', wen: '青梅竹馬・證據與法律', xiao: '腹黑對手・反間計', all: '全攻略・三人同場' }
+  routeName: { gu: '神秘權貴・資本碾壓', wen: '青梅竹馬・證據與法律', xiao: '腹黑對手・反間計', all: '全攻略・三人同場', s2: '第二季・王座' }
 };
 
 // 男主檔案：route 選擇頁同圖鑑會用。tag 一句人設；traits 性格；voice 講嘢風格（寫劇本跟住佢）
