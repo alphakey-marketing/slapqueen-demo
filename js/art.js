@@ -161,5 +161,5 @@ ${acc(outfit.acc, ch)}${extra || ''}</svg>`;
     const hearts = def.warm ? [...Array(10)].map((_, i) => `<path d="M${40 + i * 30},${90 + (i * 53) % 200} c-6,-8 -16,0 -8,8 l8,8 l8,-8 c8,-8 -2,-16 -8,-8z" fill="#ff7aa0" opacity=".5"/>`).join('') : '';
     return `<svg viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">${bgRaw(def.bg).replace(/<svg[^>]*>/, '<g>').replace('</svg>', '</g>')}${hearts}${parts}<rect width="360" height="640" fill="url(#cgv)"/><defs><linearGradient id="cgv" x1="0" y1=".6" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".75"/></linearGradient></defs><rect x="6" y="6" width="348" height="628" fill="none" stroke="#f5c46b" stroke-width="3" rx="10"/></svg>`;
   }
-  return { portrait, bgSvg, cg, mix };
+  return { portrait, bgSvg, cg, mix, has };
 })();

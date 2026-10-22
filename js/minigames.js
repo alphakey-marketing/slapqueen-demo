@@ -33,13 +33,22 @@ const Minigames = (() => {
     book: '<rect x="12" y="10" width="40" height="46" rx="3" fill="#8a3b4a"/><rect x="18" y="10" width="4" height="46" fill="#6a2a38"/><path d="M28 24h18M28 32h14" stroke="#f5d9a0" stroke-width="3"/>',
     plant: '<path d="M22 40h20l-3 18H25z" fill="#b5654a"/><path d="M32 40C20 34 18 20 24 10c6 8 10 16 8 30zM32 40C44 34 46 20 40 10c-6 8-10 16-8 30z" fill="#4ea36a"/>'
   };
+  // 開局說明卡：玩家按「開始」先計時
+  const intro = (root, o) => new Promise(r => {
+    const d = document.createElement('div'); d.className = 'mg-intro';
+    d.innerHTML = `<div class="mgi-card"><div class="mgi-ic">${o.icon}</div><h3>${esc(o.title)}</h3><p class="mgi-goal">${o.goal}</p><ol>${o.steps.map(t => `<li>${t}</li>`).join('')}</ol><p class="mgi-lose">${o.lose}</p><button class="btn gold">開始（${o.time} 秒）</button></div>`;
+    root.appendChild(d); d.querySelector('button').onclick = () => { Sfx.play('tap'); d.remove(); r(); };
+  });
+  const evIcon = (t, flaw) => Art.has('evidence', `${t}_${flaw ? 'suspicious' : 'normal'}`) ? `<img src="assets/evidence/${t}_${flaw ? 'suspicious' : 'normal'}.webp" alt="">` : `<svg viewBox="0 0 64 64">${ICON[t]}</svg>`;
   const wrap = (cls, inner) => { const d = document.createElement('div'); d.className = 'mg ' + cls; d.innerHTML = inner; return d; };
 
   function evidence(cfg, host) {
-    return new Promise(res => {
+    return new Promise(async res => {
       const items = cfg.items, need = cfg.need || 2, total = items.filter(i => i.flaw).length;
-      const root = wrap('mg-ev', `<div class="mg-top"><b>🔍 ${esc(cfg.title || '找出破綻')}</b><span class="mg-count">0 / ${need}</span></div><div class="mg-bar"><i></i></div><div class="ev-scene">${Art.bgSvg(cfg.bg === 'desk' ? 'desk' : 'room')}${items.map((it, i) => `<button class="ev-item" data-i="${i}" style="left:${it.x}%;top:${it.y}%"><svg viewBox="0 0 64 64">${ICON[it.t]}</svg></button>`).join('')}</div><div class="mg-foot"><span class="mg-tip">點擊可疑的物件</span><button class="btn ghost sm" data-hint>提示</button></div>`);
+      const root = wrap('mg-ev', `<div class="mg-top"><b>🔍 ${esc(cfg.title || '找出破綻')}</b><span class="mg-count">0 / ${need}</span></div><div class="mg-bar"><i></i></div><div class="ev-scene">${Art.bgSvg(cfg.bg === 'desk' ? 'desk' : 'room')}${items.map((it, i) => `<button class="ev-item" data-i="${i}" style="left:${it.x}%;top:${it.y}%">${evIcon(it.t, it.flaw)}</button>`).join('')}</div><div class="mg-foot"><span class="mg-tip">點擊有發光邊、看起來不對勁的物件</span><button class="btn ghost sm" data-hint>提示</button></div>`);
       host.appendChild(root);
+      await intro(root, { icon: '🔍', title: cfg.title || '找出破綻', time: cfg.time, goal: `房間裡藏着 <b>${total}</b> 件可疑物件，至少找出 <b>${need}</b> 件。`,
+        steps: ['看一看桌上的物件，找出「樣子怪怪」的（顏色、缺角、來路不明）', '直接點它，破綻就會寫出來', '點錯扣 2 秒；卡住就按「提示」，可疑物件會發光'], lose: '時間到仍未找夠，只會令劇情難一點，不會失敗結束。' });
       const t0 = Date.now(), dur = cfg.time * 1000; let found = 0, penalty = 0, done = false, hinted = false;
       const bar = $('.mg-bar i', root), cnt = $('.mg-count', root), tip = $('.mg-tip', root);
       const finish = () => {
@@ -65,18 +74,25 @@ const Minigames = (() => {
 
   function dress(cfg, host) {
     const set = DRESS_SETS[cfg.set || 'star'];
-    return new Promise(res => {
+    return new Promise(async res => {
       const pick = {}; let tab = 0, done = false;
-      const root = wrap('mg-dress', `<div class="mg-top"><b>👗 今晚主題：${esc(set.theme)}</b><span class="mg-count">${esc(set.hint)}</span></div><div class="mg-bar"><i></i></div><div class="dr-stage"><div class="dr-prev"></div><div class="dr-judge"></div></div><div class="dr-tabs"></div><div class="dr-opts"></div><div class="mg-foot"><span class="mg-tip">選好三件，按「登場」</span><button class="btn gold" data-go>登場</button></div>`);
+      const layered = Art.has('dress', 'shen_base');
+      const root = wrap('mg-dress', `<div class="mg-top"><b>👗 今晚主題：${esc(set.theme)}</b><span class="mg-count">${esc(set.hint)}</span></div><div class="mg-bar"><i></i></div><div class="dr-stage"><div class="dr-prev"></div><div class="dr-judge"></div></div><div class="dr-tabs"></div><div class="dr-opts"></div><div class="mg-foot"><span class="mg-tip">三格都要選：禮服・首飾・髮型，切換上面分頁；選好按「登場」</span><button class="btn gold" data-go>登場</button></div>`);
       host.appendChild(root);
       const prev = $('.dr-prev', root), tabs = $('.dr-tabs', root), opts = $('.dr-opts', root);
       const outfit = () => { const o = { type: 'dress', color: '#cfc9d6', sparkle: false, acc: [], hair: 'long' }; set.slots.forEach(s => { const p = pick[s.key]; if (!p) return; if (p.color) { o.color = p.color; o.sparkle = !!p.sparkle; } if (p.acc) o.acc = p.acc; if (p.hair) o.hair = p.hair; }); return o; };
       const render = () => {
-        prev.innerHTML = Art.portrait('shen', pick.dress ? 'smile' : 'normal', outfit());
+        if (layered) {
+          const L = f => (f && Art.has('dress', f)) ? `<img class="lay" src="assets/dress/${f}.webp" alt="">` : '';
+          const pre = cfg.set || 'star', ix = k => pick[k] ? set.slots.find(x => x.key === k).opts.indexOf(pick[k]) : -1;
+          prev.innerHTML = `<img class="lay" src="assets/dress/shen_base.webp" alt="">${ix('dress') >= 0 ? L(`${pre}_dress_${ix('dress')}`) : ''}${ix('hair') >= 0 ? L(`${pre}_hair_${ix('hair')}`) : ''}${ix('acc') >= 0 ? L(`${pre}_acc_${ix('acc')}`) : ''}`;
+        } else prev.innerHTML = Art.portrait('shen', pick.dress ? 'smile' : 'normal', outfit());
         tabs.innerHTML = set.slots.map((s, i) => `<button class="${i === tab ? 'on' : ''}" data-t="${i}">${s.name}${pick[s.key] ? ' ✓' : ''}</button>`).join('');
         opts.innerHTML = set.slots[tab].opts.map((o, i) => `<button class="${pick[set.slots[tab].key] === o ? 'on' : ''}" data-o="${i}">${o.color ? `<i style="background:${o.color}"></i>` : '<i class="ic">✦</i>'}${esc(o.n)}</button>`).join('');
       };
       render();
+      await intro(root, { icon: '👗', title: `換裝：${set.theme}`, time: cfg.time, goal: `今晚主題是「<b>${esc(set.theme)}</b>」（${esc(set.hint)}），打扮到 <b>${cfg.need || 70}</b> 分以上就贏。`,
+        steps: ['點上方分頁：禮服、首飾、髮型，每格選一件', '貼合主題顏色與氣質的得分高，土氣或礙眼的得分低', '預覽會即時更新；選好三件按「登場」，時間到會自動登場'], lose: '分數不夠劇情會尷尬，但仍會繼續。' });
       const t0 = Date.now(), dur = cfg.time * 1000, bar = $('.mg-bar i', root);
       const score = () => set.slots.reduce((a, s) => a + (pick[s.key] ? pick[s.key].score : 0), 0);
       const finish = () => {

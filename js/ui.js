@@ -128,7 +128,8 @@ ${p.done.e6 || p.route ? '' : '<p class="hint">完成第 6 集後，選擇你的
       return `<div class="prod ${cls} ${owned ? 'owned' : ''}" data-a="buy" data-k="${k}">${p.tag ? `<em>${esc(p.tag)}</em>` : ''}<div><b>${esc(p.name)}</b>${p.desc ? `<small>${esc(p.desc)}</small>` : ''}</div><span>${owned ? '已擁有' : 'US$' + p.price}</span></div>`;
     };
     const adBtn = Eco.isVip() ? '' : `<div class="prod ad" data-a="ad"><div><b>📺 看廣告領 💎 10</b><small>今日剩 ${Eco.adsLeft()} 次</small></div><span>免費</span></div><div class="prod ad" data-a="adticket"><div><b>📺 看廣告領 🎫 1</b><small>今日剩 ${Eco.adsLeft()} 次</small></div><span>免費</span></div>`;
-    return `<h2 class="ttl">商店</h2>${CONFIG.billing === 'mock' ? '<p class="test">⚠ 測試模式：不會真正扣款</p>' : ''}
+    const rules = `<div class="rules"><b>🎫 門票</b>：看一集用 1 張，每 2 小時回 1 張。<br><b>⏳ 解鎖時間</b>：新集每日 8 點開放，想提早看可花 💎 ${CONFIG.skipGateCost}（已包含門票）。<br><b>VIP／整季買斷</b>：門票無限、無需等待。</div>`;
+    return `<h2 class="ttl">商店</h2>${rules}${CONFIG.billing === 'mock' ? '<p class="test">⚠ 測試模式：不會真正扣款</p>' : ''}
 ${s.own.first ? '' : card('first', 'hot')}<h3>會員</h3>${card('vipW')}${card('vipM', 'hot')}${card('season')}${card('allpass')}<h3>鑽石</h3>${card('dia100')}${card('dia330')}${card('dia700')}<h3>免費</h3>${adBtn}
 <div class="prod" data-a="ticketdia"><div><b>🎫 用鑽石買門票</b><small>💎 ${CONFIG.ticketDiaCost} = 1 張</small></div><span>兌換</span></div>
 <button class="link" data-a="restore">恢復購買</button>`;
@@ -235,24 +236,24 @@ ${s.own.first ? '' : card('first', 'hot')}<h3>會員</h3>${card('vipW')}${card('
     const p = Store.s.p, done = !!p.done[ep.id], resume = !!(p.cur && p.cur.ep === ep.id);
     const replay = done;
     if (!replay && !resume) {
-      const gate = Eco.gateMs(ep);
+      const gate = Eco.gateMs(ep); let paidSkip = false;
       if (gate > 0) {
-        const r = await this.modal(`<h3>第${ep.seq}集尚未解鎖</h3><p>每日早上 8 點更新。還需 ${fmtTime(gate)}。</p><div class="col"><button class="btn gold" data-r="skip">💎 ${CONFIG.skipGateCost} 立即解鎖</button><button class="btn ghost" data-r="no">明天再來</button></div>`);
+        const r = await this.modal(`<h3>第${ep.seq}集 未到更新時間</h3><p>新劇集每日早上 8 點開放，還有 <b>${fmtTime(gate)}</b>。<br>等到時間後，每集再用 🎫 1 張門票觀看。</p><div class="col"><button class="btn gold" data-r="skip">💎 ${CONFIG.skipGateCost} 現在就看（已包含門票，不再扣 🎫）</button><button class="btn ghost" data-r="no">等明天（免費）</button></div>`);
         if (r !== 'skip') return;
         if (!Eco.spendDia(CONFIG.skipGateCost, 'skip_gate')) { if (!await this.needDia(CONFIG.skipGateCost) || !Eco.spendDia(CONFIG.skipGateCost, 'skip_gate')) return; }
-        p.unlocked[ep.id] = true; Store.save();
+        p.unlocked[ep.id] = true; paidSkip = true; Store.save();
       }
-      if (!Eco.hasTicket()) {
+      if (!paidSkip && !Eco.hasTicket()) {
         if (!Store.s.tut.gift) { Store.s.tut.gift = true; Eco.addTicket(1); this.toast('🎫 送你一張門票！'); }
         else {
-          const r = await this.modal(`<h3>門票用完了</h3><p>每 2 小時回復 1 張。下一張：${fmtTime(Eco.nextTicketMs())}</p><div class="col">${Eco.adsLeft() > 0 ? '<button class="btn gold" data-r="ad">📺 看廣告 +1 門票</button>' : ''}<button class="btn" data-r="dia">💎 ${CONFIG.ticketDiaCost} 買門票</button><button class="btn ghost" data-r="vip">VIP／買斷：門票無限</button><button class="btn ghost" data-r="no">等一等</button></div>`);
+          const r = await this.modal(`<h3>🎫 門票用完了</h3><p>看一集要 1 張門票，每 2 小時自動回復 1 張（最多 ${CONFIG.maxTickets}）。下一張：${fmtTime(Eco.nextTicketMs())}</p><div class="col">${Eco.adsLeft() > 0 ? '<button class="btn gold" data-r="ad">📺 看廣告 +1 門票</button>' : ''}<button class="btn" data-r="dia">💎 ${CONFIG.ticketDiaCost} 買門票</button><button class="btn ghost" data-r="vip">VIP／買斷：門票無限</button><button class="btn ghost" data-r="no">等一等</button></div>`);
           if (r === 'ad') { if (await Monet.rewardAd('ticket')) Eco.addTicket(1); else return; }
           else if (r === 'dia') { if (!Eco.spendDia(CONFIG.ticketDiaCost, 'ticket')) { if (!await this.needDia(CONFIG.ticketDiaCost) || !Eco.spendDia(CONFIG.ticketDiaCost, 'ticket')) return; } Eco.addTicket(1); }
           else if (r === 'vip') { this.go('shop'); return; }
           else return;
         }
       }
-      Eco.useTicket();
+      if (!paidSkip) Eco.useTicket();
     }
     this.startStage(ep, replay, resume);
   },
