@@ -156,3 +156,11 @@ h2.ttl{font-size:22px;margin:8px 0 12px}h3{margin:16px 0 8px;font-size:15px;colo
 .ev-item img{width:100%;height:100%;object-fit:contain}
 .dr-prev{position:relative;height:100%;aspect-ratio:1024/1800}.dr-prev img.lay{position:absolute;inset:0;width:100%;height:100%}
 .rules{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12.5px;line-height:1.7;color:var(--dim);margin:0 0 10px}.rules b{color:var(--gold)}
+
+/* 心動戲 */
+.heart{position:absolute;inset:0;z-index:9;background:#000;animation:fi .4s}.heart.out{opacity:0;transition:.35s}
+.ht-bg{position:absolute;inset:0;opacity:.55;filter:blur(2px)}.ht-bg>*{width:100%;height:100%;object-fit:cover}
+.ht-who{position:absolute;left:0;right:0;bottom:150px;top:6%;display:flex;justify-content:center;align-items:flex-end;overflow:hidden}.ht-who img{height:100%;width:auto}
+.ht-tag{position:absolute;top:calc(var(--safe-t) + 14px);left:0;right:0;text-align:center;color:#ff9fc0;letter-spacing:2px;font-size:14px;text-shadow:0 0 8px #f06292}
+.ht-box{position:absolute;left:10px;right:10px;bottom:calc(14px + var(--safe-b));min-height:120px;background:linear-gradient(180deg,#2a0a2eee,#0a0310f2);border:1px solid #ff9fc088;border-radius:16px;padding:20px 16px 14px}
+.ht-box b{position:absolute;top:-14px;left:14px;padding:2px 14px;border-radius:99px;font-size:14px;color:#fff}.ht-box p{margin:0;font-size:17px;line-height:1.6}.ht-box p.nar{color:#d9c8e4;font-style:italic}.ht-box p.think{color:#ffd9e4}.ht-box i{position:absolute;right:14px;bottom:8px;color:var(--gold);font-style:normal}

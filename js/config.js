@@ -9,6 +9,7 @@ window.CONFIG = {
   maxTickets: 5,
   ticketRegenMs: 2 * 3600 * 1000,
   adDailyCap: 5,
+  dailyUnlock: false,        // false = 只用門票收費；true = 另加「每日 8 點解鎖」（可選，要付 skipGateCost 提前看）
   unlockHour: 8,             // 每日早上 8 點解鎖新集
   skipGateCost: 30,          // 鑽石提前解鎖一集
   ticketDiaCost: 20,         // 鑽石買 1 張票

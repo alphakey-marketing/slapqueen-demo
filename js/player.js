@@ -44,7 +44,7 @@ const Player = {
         return;
       }
       // cg 同結局卡喺 st-layer 入面，要放行點擊
-      if (e.target.closest('.cgview,.endcard')) { this.tap(); return; }
+      if (e.target.closest('.cgview,.endcard,.heart')) { this.tap(); return; }
       if (e.target.closest('.st-choice,.st-layer,.mg')) return;
       this.tap();
     };
@@ -86,6 +86,7 @@ const Player = {
   // ───── 條件 ─────
   val(path) {
     const P = this.P;
+    if (path.startsWith('flag.r_')) return P.route === path.slice(7);
     if (path.startsWith('flag.')) return !!P.flags[path.slice(5)];
     if (path.startsWith('love.')) return P.love[path.slice(5)];
     if (path.startsWith('item.')) return P.items[path.slice(5)] || 0;
@@ -263,7 +264,22 @@ const Player = {
     if (m === 'lu') return;
     this.floatText(`${CHARS[m].name} 好感 +${n}`); Sfx.play('heart');
     const lv1 = Eco.love(m);
-    if (lv1 > lv0) for (let l = lv0 + 1; l <= lv1; l++) await this.cgView(`love_${m}_${l}`, `${CHARS[m].name}・好感度升級：${CONFIG.loveNames[l]}`);
+    if (lv1 > lv0) for (let l = lv0 + 1; l <= lv1; l++) { await this.heartScene(m, l); await this.cgView(`love_${m}_${l}`, `${CHARS[m].name}・好感度升級：${CONFIG.loveNames[l]}`); }
+  },
+  // 心動戲：升級 CG 之前先演一小段
+  async heartScene(m, l) {
+    const sc = window.HEART && HEART[m] && HEART[m][l]; if (!sc) return;
+    this.$('.st-box').className = 'st-box';
+    const c = CHARS[m].color || '#ff8fb0';
+    const v = el(`<div class="heart"><div class="ht-bg">${Art.bgSvg(sc.bg)}</div><div class="ht-who">${Art.portrait(m, sc.mood || 'normal')}</div><div class="ht-tag">♥ ${esc(CHARS[m].name)}・${CONFIG.loveNames[l]}</div><div class="ht-box"><b></b><p></p><i>▼</i></div></div>`);
+    this.$('.st-layer').appendChild(v); Sfx.play('heart'); await this.delay(400);
+    const nm = $('b', v), tx = $('p', v);
+    for (const [w, t] of sc.lines) {
+      nm.textContent = w === 'm' ? CHARS[m].name : w === 's' ? '（心聲）' : ''; nm.style.background = w === 'm' ? c : '#8a5aa8'; nm.style.display = w === 'n' ? 'none' : '';
+      tx.textContent = t; tx.className = w === 'n' ? 'nar' : w === 's' ? 'think' : '';
+      await this.waitTap(0);
+    }
+    v.classList.add('out'); await this.delay(350); v.remove();
   },
   async give(n) {
     const P = this.P, bits = [];

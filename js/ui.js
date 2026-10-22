@@ -63,8 +63,12 @@ const UI = {
   epList() {
     const p = Store.s.p, common = EPISODES.filter(e => !e.route);
     let list = [...common];
-    if (p.route) list = list.concat(EPISODES.filter(e => e.route === p.route).sort((a, b) => a.seq - b.seq));
-    else list.push({ ph: 1, seq: 7, title: '選線後解鎖', id: 'ph' });
+    if (p.route) {
+      list = list.concat(EPISODES.filter(e => e.route === p.route).sort((a, b) => a.seq - b.seq));
+      const s1end = { gu: 'g9', wen: 'w9', xiao: 'x9', all: 'a8' }[p.route];
+      if (p.done[s1end]) list = list.concat(EPISODES.filter(e => e.route === 's2').sort((a, b) => a.seq - b.seq));
+      else list.push({ ph: 1, seq: 10, title: '第二季・完成第一季後解鎖', id: 'ph2' });
+    } else list.push({ ph: 1, seq: 7, title: '選線後解鎖', id: 'ph' });
     return list;
   },
   vHome() {
@@ -128,7 +132,7 @@ ${p.done.e6 || p.route ? '' : '<p class="hint">完成第 6 集後，選擇你的
       return `<div class="prod ${cls} ${owned ? 'owned' : ''}" data-a="buy" data-k="${k}">${p.tag ? `<em>${esc(p.tag)}</em>` : ''}<div><b>${esc(p.name)}</b>${p.desc ? `<small>${esc(p.desc)}</small>` : ''}</div><span>${owned ? '已擁有' : 'US$' + p.price}</span></div>`;
     };
     const adBtn = Eco.isVip() ? '' : `<div class="prod ad" data-a="ad"><div><b>📺 看廣告領 💎 10</b><small>今日剩 ${Eco.adsLeft()} 次</small></div><span>免費</span></div><div class="prod ad" data-a="adticket"><div><b>📺 看廣告領 🎫 1</b><small>今日剩 ${Eco.adsLeft()} 次</small></div><span>免費</span></div>`;
-    const rules = `<div class="rules"><b>🎫 門票</b>：看一集用 1 張，每 2 小時回 1 張。<br><b>⏳ 解鎖時間</b>：新集每日 8 點開放，想提早看可花 💎 ${CONFIG.skipGateCost}（已包含門票）。<br><b>VIP／整季買斷</b>：門票無限、無需等待。</div>`;
+    const rules = `<div class="rules"><b>🎫 門票</b>：看一集用 1 張，每 2 小時回 1 張。<br>${CONFIG.dailyUnlock ? `<b>⏳ 解鎖時間</b>：新集每日 8 點開放，想提早看可花 💎 ${CONFIG.skipGateCost}（已包含門票）。<br>` : ''}<b>VIP／整季買斷</b>：門票無限、免廣告。<br>門票不夠？看廣告、花 💎 ${CONFIG.ticketDiaCost}，或等它回復。</div>`;
     return `<h2 class="ttl">商店</h2>${rules}${CONFIG.billing === 'mock' ? '<p class="test">⚠ 測試模式：不會真正扣款</p>' : ''}
 ${s.own.first ? '' : card('first', 'hot')}<h3>會員</h3>${card('vipW')}${card('vipM', 'hot')}${card('season')}${card('allpass')}<h3>鑽石</h3>${card('dia100')}${card('dia330')}${card('dia700')}<h3>免費</h3>${adBtn}
 <div class="prod" data-a="ticketdia"><div><b>🎫 用鑽石買門票</b><small>💎 ${CONFIG.ticketDiaCost} = 1 張</small></div><span>兌換</span></div>

@@ -53,7 +53,7 @@ const Eco = {
   // 解鎖日：本機日期 08:00 為界
   dayIndex(now = Date.now()) { const d = new Date(Store.s.t0); d.setHours(CONFIG.unlockHour, 0, 0, 0); if (d.getTime() > Store.s.t0) d.setDate(d.getDate() - 1); return Math.floor((now - d.getTime()) / 864e5); },
   unlockAt(seq) { const need = CONFIG.releaseDay[seq] ?? 0; const d = new Date(Store.s.t0); d.setHours(CONFIG.unlockHour, 0, 0, 0); if (d.getTime() > Store.s.t0) d.setDate(d.getDate() - 1); return d.getTime() + need * 864e5; },
-  gateMs(ep) { const p = Store.s.p; if (Store.s.own.season || Eco.isVip() || p.unlocked[ep.id] || p.done[ep.id]) return 0; return Math.max(0, Eco.unlockAt(ep.seq) - Date.now()); },
+  gateMs(ep) { if (!CONFIG.dailyUnlock) return 0; const p = Store.s.p; if (Store.s.own.season || Eco.isVip() || p.unlocked[ep.id] || p.done[ep.id]) return 0; return Math.max(0, Eco.unlockAt(ep.seq) - Date.now()); },
   love(m) { const L = CONFIG.loveLevels, v = Store.s.p.love[m]; let lv = 0; L.forEach((t, i) => { if (v >= t) lv = i; }); return lv; },
   // 每日登入
   dailyReward() {

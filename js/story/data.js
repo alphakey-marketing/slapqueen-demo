@@ -1,7 +1,7 @@
 // 題材層＋角色＋圖鑑資料（資料化：改呢度唔使改程式）
 const SK = (c, a) => ({ type: 'suit', color: c, accent: a });
 window.THEME = {
-  id: 'rebirth', title: '重生打臉女王', sub: '每集三分鐘，親手打臉',
+  id: 'rebirth', title: '重生打臉女王', sub: '每集五分鐘，親手打臉',
   power: { name: '前世記憶', icon: '🔮' },
   item: { id: 'precog', name: '預知卡', icon: '🃏', desc: '提前知道敵人陰謀，解鎖隱藏選項' },
   rage: { name: '逆襲值', icon: '🔥' },
@@ -35,6 +35,7 @@ window.CHARS = {
   fa: { name: '沈父', g: 'm', hair: 'grey', hairC: '#9a9aa6', eye: '#5a6a7a', skin: '#f2d2bc', color: '#9fb0c8', outfit: SK('#2a2f45', '#5a6a7a') },
   dong: { name: '董事', g: 'm', hair: 'grey', hairC: '#555', eye: '#444', skin: '#f0cdb6', color: '#999', outfit: SK('#3a3a3a', '#8a8a8a') },
   jiang: { name: '江助理', g: 'm', hair: 'neat', hairC: '#1a1a1a', eye: '#3a3a3a', skin: '#f6d8c4', color: '#9aa', outfit: SK('#222', '#555'), acc: ['glasses'] },
+  ning: { name: '寧韻', g: 'f', hair: 'updo', hairC: '#1c2a44', eye: '#4a6a9a', skin: '#fbe3d6', color: '#7aa8d8', outfit: { type: 'dress', color: '#2a3a5c', sparkle: true, acc: ['pearl', 'earring'] }, outfits: { suit: { type: 'suit', color: '#2a3a5c', accent: '#c9d4e6' } } },
   rep: { name: '記者', g: 'f', hair: 'side', hairC: '#3a2a2a', eye: '#444', skin: '#fbe0cf', color: '#aaa', outfit: { type: 'casual', color: '#7a8fa6' } }
 };
 
@@ -57,6 +58,9 @@ window.CGS = {
   cg_xiao_conf: { name: '嘴硬的告白', bg: 'room', cast: [['xiao', 'smile', 30, 1], ['shen', 'smile', 190, .85, 'gala', 1]], line: '「喂，沈知意，一輩子，夠不夠？」', warm: 1 },
   cg_lu_kneel: { name: '跪地求饒', bg: 'street', cast: [['lu', 'sad', 40, .95], ['shen', 'cold', 190, .8, 'suit', 1]], line: '「知意，求你……回頭看我一眼。」' },
   cg_bai_arrest: { name: '東窗事發', bg: 'gala', cast: [['bai', 'shock', 40, .95, 'red'], ['shen', 'cold', 190, .85, 'gala', 1]], line: '「白薇薇，你的戲，演完了。」' },
+  cg_ning_fall: { name: '抄襲反噬', bg: 'press', cast: [['ning', 'shock', 40, .95, 'suit'], ['shen', 'cold', 190, .85, 'suit', 1]], line: '「這張草圖，比你的公司，還要老十七歲。」' },
+  cg_lm_mask: { name: '面具裂開', bg: 'mansion', cast: [['lm', 'shock', 40, .95], ['shen', 'cold', 190, .85, 'gala', 1]], line: '「這件裙子……你從哪裡找到的？」' },
+  cg_throne: { name: '王座之下', bg: 'boardroom', cast: [['shen', 'smile', 100, 1, 'suit']], line: '「這一次，沒有人能把我推下去。」', warm: 1 },
   cg_trio_back: { name: '三道背影', bg: 'boardroom', cast: [['gu', 'cold', -10, .8], ['wen', 'cold', 110, .85, 'law'], ['xiao', 'smirk', 220, .8, 'formal']], line: '「誰動她，先過我們這關。」', warm: 1 },
   cg_outfit: { name: '限定・月下禮服', bg: 'room', cast: [['shen', 'smile', 60, 1, { type: 'dress', color: '#2fb8c9', sparkle: true, acc: ['necklace', 'earring', 'tiara'] }]], line: '首充限定', warm: 1 },
   cg_week: { name: '七日限定・花嫁', bg: 'wedding', cast: [['shen', 'smile', 60, 1, 'wedding']], line: '七日登入限定', warm: 1 }
