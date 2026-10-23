@@ -171,7 +171,7 @@ const Player = {
   drawChars(enterPos) {
     for (const pos of ['l', 'c', 'r']) {
       const d = this.$(`.char[data-pos=${pos}]`), c = this.cast[pos];
-      if (!c) { d.innerHTML = ''; d.dataset.id = ''; continue; }
+      if (!c) { d.innerHTML = ''; d.dataset.id = ''; delete d.dataset.key; continue; }
       const key = `${c.id}|${c.mood}|${c.outfit && (c.outfit.type || c.outfit)}`;
       if (d.dataset.key !== key) { d.innerHTML = Art.portrait(c.id, c.mood, c.outfit); d.dataset.key = key; }
       d.dataset.id = c.id;
