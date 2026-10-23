@@ -6,7 +6,7 @@ const Player = {
   $(s) { return $(s, this.el); },
 
   async start(ep, { replay = false, resume = false } = {}) {
-    this.ep = ep; this.replay = replay; this.choiceN = 0; this.ff = false;
+    this.ep = ep; this.replay = replay; this.choiceN = 0; this.ff = false; this.ended = false;
     const real = Store.s.p;
     this.P = replay ? JSON.parse(JSON.stringify(real)) : real;
     if (replay) this.P.rage = 0;
@@ -80,6 +80,7 @@ const Player = {
     for (let i = from; i < list.length; i++) {
       const n = list[i];
       await this.exec(n, i);
+      if (this.ended) return;
       if (top && MUT.has(n.k)) this.checkpoint(i + 1);
     }
   },
@@ -380,14 +381,20 @@ const Player = {
     if (choice === 'all') P.rage = Math.max(P.rage, 100);
     const names = THEME.routeName; this.floatText(`選擇：${names[choice]}`, 1); await this.delay(1000);
   },
-  async ending(n) {
-    const P = this.P, r = n.r;
+  endingResult(r, P) {
     const love = P.love[r] || 0, slaps = P.slaps;
-    const G = CONFIG.endGrade, L3 = ['gu', 'wen', 'xiao'].map(m => P.love[m] || 0);
+    const G = THEME.endGrade || CONFIG.endGrade, L3 = THEME.men.map(m => P.love[m] || 0);
     let grade, shown = love;
-    if (r === 'all') { shown = Math.min(...L3); grade = shown >= G.all.p ? 'p' : 'n'; }
+    if (G.fixed && G.fixed[r]) { grade = G.fixed[r]; shown = 0; }
+    else if (r === 'solo' && G.solo) { shown = G.solo.flags.filter(f => P.flags[f]).length; grade = shown >= G.solo.p ? 'p' : shown < G.solo.t ? 't' : 'n'; }
+    else if (r === 'all') { shown = Math.min(...L3); grade = shown >= G.all.p && (!G.requiredFlags || G.requiredFlags.every(f => P.flags[f])) ? 'p' : 'n'; }
     else if (r === 's2') { shown = P.route === 'all' ? Math.min(...L3) : (P.love[P.route] || 0); grade = (shown >= G.s2.p && P.flags.ning_ally) ? 'p' : shown < G.s2.t ? 't' : 'n'; }
-    else grade = (love >= G.s1.p && slaps >= G.s1.slaps) ? 'p' : love < G.s1.t ? 't' : 'n';
+    else grade = (love >= G.s1.p && slaps >= G.s1.slaps && (!G.requiredFlags || G.requiredFlags.every(f => P.flags[f]))) ? 'p' : love < G.s1.t ? 't' : 'n';
+    return { grade, shown };
+  },
+  async ending(n) {
+    const P = this.P, r = n.r, slaps = P.slaps;
+    const { grade, shown } = this.endingResult(r, P);
     this.speakers(null);
     await this.run(n[grade]);
     const key = `${r}_${grade}`;
@@ -397,11 +404,12 @@ const Player = {
       Analytics.track('ending', { key });
     }
     const L = this.$('.st-layer');
-    const card = el(`<div class="endcard ${grade}"><small>${grade === 'p' ? 'PERFECT ENDING' : grade === 'n' ? 'NORMAL ENDING' : 'BAD ENDING'}</small><h2>${esc(ENDINGS[key])}</h2><p>${esc(THEME.routeName[r])}　好感 ${shown}　打臉 ${slaps} 次</p><span>已收錄至圖鑑</span></div>`);
+    const card = el(`<div class="endcard ${grade}"><small>${r === 'story' ? 'BAD ENDING' : grade === 'p' ? 'PERFECT ENDING' : grade === 'n' ? 'NORMAL ENDING' : 'REGRET ENDING'}</small><h2>${esc(ENDINGS[key])}</h2><p>${r === 'story' ? '主線關鍵抉擇失敗・好感無法抵銷後果' : `${esc(THEME.routeName[r])}　${r === 'solo' ? '關鍵選擇' : '好感'} ${shown}　打臉 ${slaps} 次`}</p><span>已收錄至圖鑑</span></div>`);
     L.appendChild(card); Sfx.play(grade === 't' ? 'lose' : 'win'); await this.delay(600); await this.waitTap(0); card.classList.add('out'); await this.delay(300); card.remove();
   },
   async end(n) {
     const P = this.P, ep = this.ep;
+    this.ended = true;
     if (!this.replay) {
       P.done[ep.id] = true; P.cur = null; Store.save(); Analytics.track('ep_end', { ep: ep.id });
     }

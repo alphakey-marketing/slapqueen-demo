@@ -76,7 +76,7 @@ const Minigames = (() => {
     const set = DRESS_SETS[cfg.set || 'star'];
     return new Promise(async res => {
       const pick = {}; let tab = 0, done = false;
-      const layered = Art.has('dress', 'shen_base');
+      const layered = !cfg.portrait && Art.has('dress', 'shen_base');
       const root = wrap('mg-dress', `<div class="mg-top"><b>👗 今晚主題：${esc(set.theme)}</b><span class="mg-count">${esc(set.hint)}</span></div><div class="mg-bar"><i></i></div><div class="dr-stage"><div class="dr-prev"></div><div class="dr-judge"></div></div><div class="dr-tabs"></div><div class="dr-opts"></div><div class="mg-foot"><span class="mg-tip">三格都要選：禮服・首飾・髮型，切換上面分頁；選好按「登場」</span><button class="btn gold" data-go>登場</button></div>`);
       host.appendChild(root);
       const prev = $('.dr-prev', root), tabs = $('.dr-tabs', root), opts = $('.dr-opts', root);
@@ -86,13 +86,14 @@ const Minigames = (() => {
           const L = f => (f && Art.has('dress', f)) ? `<img class="lay" src="assets/dress/${f}.webp" alt="">` : '';
           const pre = cfg.set || 'star', ix = k => pick[k] ? set.slots.find(x => x.key === k).opts.indexOf(pick[k]) : -1;
           prev.innerHTML = `<img class="lay" src="assets/dress/shen_base.webp" alt="">${ix('dress') >= 0 ? L(`${pre}_dress_${ix('dress')}`) : ''}${ix('hair') >= 0 ? L(`${pre}_hair_${ix('hair')}`) : ''}${ix('acc') >= 0 ? L(`${pre}_acc_${ix('acc')}`) : ''}`;
-        } else prev.innerHTML = Art.portrait('shen', pick.dress ? 'smile' : 'normal', outfit());
+        } else prev.innerHTML = Art.portrait(cfg.portrait || 'shen', pick.dress ? 'smile' : 'normal', cfg.portrait ? undefined : outfit());
+        if (cfg.portrait) prev.insertAdjacentHTML('beforeend', `<small class="dr-selection">${set.slots.map(s => esc(pick[s.key]?.n || `未選${s.name}`)).join('・')}</small>`);
         tabs.innerHTML = set.slots.map((s, i) => `<button class="${i === tab ? 'on' : ''}" data-t="${i}">${s.name}${pick[s.key] ? ' ✓' : ''}</button>`).join('');
         opts.innerHTML = set.slots[tab].opts.map((o, i) => `<button class="${pick[set.slots[tab].key] === o ? 'on' : ''}" data-o="${i}">${o.color ? `<i style="background:${o.color}"></i>` : '<i class="ic">✦</i>'}${esc(o.n)}</button>`).join('');
       };
       render();
       await intro(root, { icon: '👗', title: `換裝：${set.theme}`, time: cfg.time, goal: `今晚主題是「<b>${esc(set.theme)}</b>」（${esc(set.hint)}），打扮到 <b>${cfg.need || 70}</b> 分以上就贏。`,
-        steps: ['點上方分頁：禮服、首飾、髮型，每格選一件', '貼合主題顏色與氣質的得分高，土氣或礙眼的得分低', '預覽會即時更新；選好三件按「登場」，時間到會自動登場'], lose: '分數不夠劇情會尷尬，但仍會繼續。' });
+        steps: ['點上方分頁：禮服、首飾、髮型，每格選一件', '貼合主題顏色與氣質的得分高，土氣或礙眼的得分低', cfg.portrait ? '下方會顯示已選搭配；選好三件按「登場」，時間到會自動登場' : '預覽會即時更新；選好三件按「登場」，時間到會自動登場'], lose: '分數不夠劇情會尷尬，但仍會繼續。' });
       const t0 = Date.now(), dur = cfg.time * 1000, bar = $('.mg-bar i', root);
       const score = () => set.slots.reduce((a, s) => a + (pick[s.key] ? pick[s.key].score : 0), 0);
       const finish = () => {

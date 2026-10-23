@@ -166,3 +166,18 @@ h2.ttl{font-size:22px;margin:8px 0 12px}h3{margin:16px 0 8px;font-size:15px;colo
 .ht-box b{position:absolute;top:-14px;left:14px;padding:2px 14px;border-radius:99px;font-size:14px;color:#fff}.ht-box p{margin:0;font-size:17px;line-height:1.6}.ht-box p.nar{color:#d9c8e4;font-style:italic}.ht-box p.think{color:#ffd9e4}.ht-box i{position:absolute;right:14px;bottom:8px;color:var(--gold);font-style:normal}
 
 .hdia{display:flex;align-items:center;gap:2px;font-size:12px;padding:2px 7px;border-radius:9px;background:#0007;border:1px solid #f5c46b66;color:#f5c46b;white-space:nowrap}
+/* Independent story selection and data-composed preview CGs. */
+.story-picker{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.story-card{display:flex;flex-direction:column;gap:7px;padding:13px;border:1px solid #644a71;border-radius:12px;text-decoration:none;color:inherit;background:#24132e}
+.story-card.on{border-color:#f5c46b;background:#35203d}
+.story-card small{color:#c3aaca;font-size:11px}
+.story-card b{font-size:13px;line-height:1.6}
+.story-hero .hero-art{top:8px;bottom:auto;height:360px;right:-12px}
+.story-cg{position:relative;width:100%;height:100%;min-height:300px;aspect-ratio:9/16;overflow:hidden;background:#20152b}
+.story-cg>.bgimg{position:absolute;width:100%;height:100%;object-fit:cover;inset:0}
+.story-cg-cast{position:absolute;inset:15% -10% 0;display:flex;align-items:flex-end;justify-content:center}
+.story-cg-cast>.portrait{width:65%;height:100%;object-fit:contain;flex-shrink:0;margin:0 -12%}
+.story-cg-cast:has(>.portrait:nth-child(4))>.portrait{width:43%;margin:0 -9%}
+.story-cg-cast:has(>.portrait:nth-child(4)){inset:15% 0 8%}
+.av img.portrait[src*="/starlight/"]{object-position:50% 0%;transform-origin:50% 0%}
+.dr-selection{position:absolute;left:4px;right:4px;bottom:4px;padding:6px;background:#170d24dd;color:#fff;text-align:center;font-size:11px}

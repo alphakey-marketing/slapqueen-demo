@@ -1,10 +1,10 @@
 // 存檔、經濟（門票／鑽石／VIP／廣告上限）、數據事件
 const Store = (() => {
-  const KEY = 'slapqueen.save.v1';
+  const KEY = STORIES[STORY_ID].saveKey;
   const fresh = () => ({
-    v: 1, t0: Date.now(), tickets: CONFIG.startTickets, tAt: Date.now(), dia: 0,
+    v: 1, story: STORY_ID, t0: Date.now(), tickets: CONFIG.startTickets, tAt: Date.now(), dia: 0,
     vipUntil: 0, own: { season: false, allpass: false, first: false },
-    p: { done: {}, route: null, flags: {}, love: { gu: 0, wen: 0, xiao: 0, lu: 0 }, power: 0, rage: 0, items: { precog: 0 }, slaps: 0, picks: {}, snap: null, unlocked: {}, cur: null },
+    p: { done: {}, route: null, flags: {}, love: { gu: 0, wen: 0, xiao: 0, lu: 0, sheng: 0, jiang: 0, qi: 0 }, power: 0, rage: 0, items: { precog: 0 }, slaps: 0, picks: {}, snap: null, unlocked: {}, cur: null },
     gal: { cg: {}, end: {}, chr: {}, claimed: {} },
     daily: { last: '', streak: 0 }, ads: { day: '', n: 0 }, msg: { day: '', replied: false, idx: 0 },
     tut: { gift: false, firstShown: false, savePrompt: false, notifAsked: false },
@@ -26,7 +26,7 @@ const Store = (() => {
     reset() { s = fresh(); save(); },
     // 進度碼：unicode 安全 base64
     exportCode() { return btoa(unescape(encodeURIComponent(JSON.stringify(s)))); },
-    importCode(c) { try { const j = JSON.parse(decodeURIComponent(escape(atob(c.trim())))); if (j.v !== 1) return false; s = deepMerge(fresh(), j); save(); return true; } catch (e) { return false; } }
+    importCode(c) { try { const j = JSON.parse(decodeURIComponent(escape(atob(c.trim())))); if (j.v !== 1 || (j.story || 'rebirth') !== STORY_ID) return false; s = deepMerge(fresh(), j); save(); return true; } catch (e) { return false; } }
   };
   return api;
 })();
@@ -34,6 +34,7 @@ const Store = (() => {
 const dayKey = (t = Date.now()) => { const d = new Date(t); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
 
 const Eco = {
+  isDemo: () => !!CONFIG.demo,
   isVip: () => Store.s.vipUntil > Date.now(),
   tickets() {
     const s = Store.s, max = CONFIG.maxTickets;
@@ -44,8 +45,8 @@ const Eco = {
   },
   nextTicketMs() { const s = Store.s; return this.tickets() >= CONFIG.maxTickets ? 0 : s.tAt + CONFIG.ticketRegenMs - Date.now(); },
   addTicket(n = 1, cap = false) { Eco.tickets(); const s = Store.s; if (cap) s.tickets = Math.min(CONFIG.maxTickets, s.tickets + n); else s.tickets += n; if (s.tickets >= CONFIG.maxTickets) s.tAt = Date.now(); Store.save(); },
-  useTicket() { if (Eco.isVip() || Store.s.own.season) return true; Eco.tickets(); const s = Store.s; if (s.tickets <= 0) return false; if (s.tickets >= CONFIG.maxTickets) s.tAt = Date.now(); s.tickets--; Store.save(); return true; },
-  hasTicket: () => Eco.isVip() || Store.s.own.season || Eco.tickets() > 0,
+  useTicket() { if (Eco.isDemo() || Eco.isVip() || Store.s.own.season) return true; Eco.tickets(); const s = Store.s; if (s.tickets <= 0) return false; if (s.tickets >= CONFIG.maxTickets) s.tAt = Date.now(); s.tickets--; Store.save(); return true; },
+  hasTicket: () => Eco.isDemo() || Eco.isVip() || Store.s.own.season || Eco.tickets() > 0,
   addDia(n, src) { Store.s.dia += n; Store.save(); Analytics.track('dia_gain', { n, src }); if (typeof Player !== 'undefined' && Player.hud) Player.hud(); },
   spendDia(n, why) { if (Store.s.dia < n) return false; Store.s.dia -= n; Store.save(); Analytics.track('dia_spend', { n, why }); if (typeof Player !== 'undefined' && Player.hud) Player.hud(); return true; },
   adsLeft() { const a = Store.s.ads, k = dayKey(); if (a.day !== k) { a.day = k; a.n = 0; } return Eco.isVip() ? 0 : CONFIG.adDailyCap - a.n; },
@@ -53,7 +54,7 @@ const Eco = {
   // 解鎖日：本機日期 08:00 為界
   dayIndex(now = Date.now()) { const d = new Date(Store.s.t0); d.setHours(CONFIG.unlockHour, 0, 0, 0); if (d.getTime() > Store.s.t0) d.setDate(d.getDate() - 1); return Math.floor((now - d.getTime()) / 864e5); },
   unlockAt(seq) { const need = CONFIG.releaseDay[seq] ?? 0; const d = new Date(Store.s.t0); d.setHours(CONFIG.unlockHour, 0, 0, 0); if (d.getTime() > Store.s.t0) d.setDate(d.getDate() - 1); return d.getTime() + need * 864e5; },
-  gateMs(ep) { if (!CONFIG.dailyUnlock) return 0; const p = Store.s.p; if (Store.s.own.season || Eco.isVip() || p.unlocked[ep.id] || p.done[ep.id]) return 0; return Math.max(0, Eco.unlockAt(ep.seq) - Date.now()); },
+  gateMs(ep) { if (Eco.isDemo() || !CONFIG.dailyUnlock) return 0; const p = Store.s.p; if (Store.s.own.season || Eco.isVip() || p.unlocked[ep.id] || p.done[ep.id]) return 0; return Math.max(0, Eco.unlockAt(ep.seq) - Date.now()); },
   love(m) { const L = CONFIG.loveLevels, v = Store.s.p.love[m]; let lv = 0; L.forEach((t, i) => { if (v >= t) lv = i; }); return lv; },
   // 每日登入
   dailyReward() {

@@ -91,6 +91,7 @@ const Art = (() => {
   // 立繪：ch = CHARS[id]，m = 表情，o = 衣著 key 或自訂 outfit 物件
   function portrait(id, m = 'normal', o, extra) {
     const ch = CHARS[id]; if (!ch) return '';
+    if (ch.image && typeof o !== 'object') return `<img class="portrait" src="${ch.image}" alt="${ch.name}">`;
     const im = charImg(id, m, o); if (im) return `<img class="portrait" src="assets/chars/${im}.webp" alt="">`;
     const u = ++uid;
     const outfit = typeof o === 'object' && o ? o : (ch.outfits && ch.outfits[o]) || ch.outfit;
@@ -128,6 +129,7 @@ ${acc(outfit.acc, ch)}${extra || ''}</svg>`;
     desk: { g: ['#3a2a30', '#6b4d52', '#caa08a'], fx: ['bokeh:#fff:6'] }
   };
   function bgSvg(id) {
+    if (window.THEME && THEME.backgrounds && THEME.backgrounds[id]) return `<img class="bgimg" src="${THEME.backgrounds[id]}" alt="">`;
     if (has('bg', id)) return `<img class="bgimg" src="assets/bg/${id}.webp" alt="">`;
     return bgRaw(id);
   }
@@ -156,6 +158,7 @@ ${acc(outfit.acc, ch)}${extra || ''}</svg>`;
 
   // CG：兩個角色＋場景＋標題框
   function cg(def) {
+    if (def.composite) return `<div class="story-cg">${bgSvg(def.bg)}<div class="story-cg-cast">${(def.cast || []).map(([id, m, x, sc, o]) => portrait(id, m, o)).join('')}</div></div>`;
     if (def.id && has('cg', def.id)) return `<img class="cgimg" src="assets/cg/${def.id}.webp" alt="">`;
     const parts = (def.cast || []).map(([id, m, x, sc, o, flip]) => `<g transform="${flip ? `translate(${x + 300 * sc},${640 - 420 * sc - 60}) scale(${-sc},${sc})` : `translate(${x},${640 - 420 * sc - 60}) scale(${sc})`}">${portrait(id, m, o).replace('<svg class="portrait" viewBox="0 0 300 420" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">', '<g>').replace('</svg>', '</g>')}</g>`).join('');
     const hearts = def.warm ? [...Array(10)].map((_, i) => `<path d="M${40 + i * 30},${90 + (i * 53) % 200} c-6,-8 -16,0 -8,8 l8,8 l8,-8 c8,-8 -2,-16 -8,-8z" fill="#ff7aa0" opacity=".5"/>`).join('') : '';

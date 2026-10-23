@@ -42,13 +42,14 @@ const UI = {
   },
   render() {
     const v = $('#view', this.root);
-    v.innerHTML = ({ home: () => this.vHome(), gallery: () => this.vGallery(), shop: () => this.vShop(), me: () => this.vMe() })[this.tab]();
+    v.innerHTML = (Eco.isDemo() ? '<p class="hint">朋友試玩模式・門票無限・結局條件照常判定</p>' : '') + ({ home: () => this.vHome(), gallery: () => this.vGallery(), shop: () => this.vShop(), me: () => this.vMe() })[this.tab]();
+    if (Eco.isDemo()) v.querySelectorAll('.story-card').forEach(a => { const url = new URL(a.href); url.searchParams.set('demo', '1'); a.href = url.href; });
     v.scrollTop = 0; this.refreshBar();
   },
   refreshBar() {
     const b = $('#bar', this.root); if (!b) return;
     const s = Store.s, vip = Eco.isVip();
-    const tk = (vip || s.own.season) ? '∞' : `${Eco.tickets()}/${CONFIG.maxTickets}`;
+    const tk = (Eco.isDemo() || vip || s.own.season) ? '∞' : `${Eco.tickets()}/${CONFIG.maxTickets}`;
     const nx = Eco.nextTicketMs();
     b.innerHTML = `<span class="chip" data-a="tickets">🎫 ${tk}${!vip && !s.own.season && nx ? `<small>${fmtTime(nx)}</small>` : ''}</span><span class="chip" data-a="shop">💎 ${s.dia}<b>＋</b></span>${vip ? '<span class="chip vip">VIP</span>' : ''}`;
   },
@@ -57,11 +58,13 @@ const UI = {
   nextEp() {
     const p = Store.s.p;
     if (p.cur) return EPISODES.find(e => e.id === p.cur.ep);
+    if (THEME.terminalFlag && p.flags[THEME.terminalFlag]) return null;
     const list = this.epList().filter(e => !e.ph);
     return list.find(e => !p.done[e.id]) || null;
   },
   epList() {
     const p = Store.s.p, common = EPISODES.filter(e => !e.route);
+    if (THEME.preview || THEME.linear) return common;
     let list = [...common];
     if (p.route) {
       list = list.concat(EPISODES.filter(e => e.route === p.route).sort((a, b) => a.seq - b.seq));
@@ -75,31 +78,33 @@ const UI = {
     this.dailyMsgRoll();
     const s = Store.s, p = s.p, nx = this.nextEp(), started = Object.keys(p.done).length || p.cur;
     const man = p.route && p.route !== 'all' ? p.route : null;
-    const hero = Art.portrait('shen', 'smile', 'gala');
+    const hero = Art.portrait(THEME.hero || 'shen', 'smile', THEME.heroOutfit || 'gala');
     let msg = '';
     const mm = this.msgMan();
-    if (mm && started) {
+    if (mm && started && MESSAGES[mm]) {
       const m = s.msg, T = MESSAGES[mm][m.idx % 7];
       msg = `<div class="msg"><div class="av">${Art.portrait(mm, 'smile')}</div><div class="bd"><b>${CHARS[mm].name}</b><p>${esc(T[0])}</p>${m.replied ? '<small>已回覆・好感 +1</small>' : `<div class="rp"><button data-a="reply" data-i="1">${esc(T[1])}</button><button data-a="reply" data-i="2">${esc(T[2])}</button></div>`}</div></div>`;
     }
     const list = this.epList();
-    return `<div class="hero"><div class="hero-art">${hero}</div><div class="hero-t"><h1>${esc(THEME.title)}</h1><p>${esc(THEME.sub)}</p></div></div>
-<button class="btn big gold" data-a="continue">${nx ? (p.cur ? '▶ 繼續第' + nx.seq + '集' : (started ? '▶ 第' + nx.seq + '集　' + nx.title : '▶ 開始遊戲')) : '✦ 第一季已完結'}</button>${msg}
+    return `<div class="story-picker" aria-label="選擇故事">${Object.entries(STORIES).map(([id, story]) => `<a class="story-card ${id === STORY_ID ? 'on' : ''}" href="?story=${id}" ${id === STORY_ID ? 'aria-current="page"' : ''}><b>${esc(story.title)}</b><small>${esc(story.status)}</small></a>`).join('')}</div><div class="hero ${THEME.linear || THEME.preview ? 'story-hero' : ''}"><div class="hero-art">${hero}</div><div class="hero-t"><h1>${esc(THEME.title)}</h1><p>${esc(THEME.sub)}</p></div></div>
+<button class="btn big gold" data-a="continue">${nx ? (p.cur ? '▶ 繼續第' + nx.seq + '集' : (started ? '▶ 第' + nx.seq + '集　' + nx.title : '▶ 開始遊戲')) : (THEME.linear ? '✦ 本故事已完結・可回溯探索其他結局' : THEME.preview ? '✦ 試玩已完成・後續製作中' : '✦ 第一季已完結')}</button>${msg}
 <div class="sec"><h3>劇集</h3>${p.route ? `<button class="link" data-a="timeback">⏪ 時光回溯</button>` : ''}</div>
 <div class="eps">${list.map(e => this.epRow(e)).join('')}</div>
-${p.done.e6 || p.route ? '' : '<p class="hint">完成第 6 集後，選擇你的男主線</p>'}`;
+${THEME.linear ? '<p class="hint">全 15 章・前 4 章免費。第 6 章可選單人、全攻略或不攻略；結局依好感與關鍵選擇改變。</p>' : THEME.preview ? '<p class="hint">全作規劃 15 集・目前開放前 4 集免費試玩；第 6 集選線尚未開放。</p>' : p.done.e6 || p.route ? '' : '<p class="hint">完成第 6 集後，選擇你的男主線</p>'}`;
   },
   epRow(e) {
     const p = Store.s.p;
+    if (THEME.terminalFlag && p.flags[THEME.terminalFlag] && !p.done[e.id] && !(p.cur && p.cur.ep === e.id)) return `<div class="ep lock"><i>${e.seq}</i><div><b>${esc(e.title)}</b><small>此輪已進入壞結局・可回溯重試</small></div><span>🔒</span></div>`;
+    if (THEME.linear && !p.done[e.id] && !(p.cur && p.cur.ep === e.id) && EPISODES.some(previous => previous.seq < e.seq && !p.done[previous.id])) return `<div class="ep lock"><i>${e.seq}</i><div><b>${esc(e.title)}</b><small>完成前章後開放</small></div><span>🔒</span></div>`;
     if (e.ph) return `<div class="ep lock"><i>${e.seq}</i><div><b>${e.title}</b><small>三條男主線各 3 集</small></div><span>🔒</span></div>`;
     const done = p.done[e.id], gate = Eco.gateMs(e), cur = p.cur && p.cur.ep === e.id;
-    const st = done ? '<span class="ok">✓ 重溫</span>' : gate > 0 ? `<span>⏳ ${fmtTime(gate)}</span>` : cur ? '<span class="go">繼續</span>' : '<span class="go">🎫 播放</span>';
+    const st = done ? '<span class="ok">✓ 重溫</span>' : gate > 0 ? `<span>⏳ ${fmtTime(gate)}</span>` : cur ? '<span class="go">繼續</span>' : (e.free ? '<span class="go">免費播放</span>' : '<span class="go">🎫 播放</span>');
     return `<div class="ep ${done ? 'done' : ''}" data-a="ep" data-id="${e.id}"><i>${e.seq}</i><div><b>${esc(e.title)}</b><small>${e.route ? esc(THEME.routeName[e.route]) : '主線'}</small></div>${st}</div>`;
   },
   msgMan() {
     const p = Store.s.p;
     if (p.route && p.route !== 'all') return p.route;
-    return ['gu', 'wen', 'xiao'].sort((a, b) => p.love[b] - p.love[a])[0];
+    return [...THEME.men].sort((a, b) => p.love[b] - p.love[a])[0];
   },
   dailyMsgRoll() {
     const m = Store.s.msg, k = dayKey();
@@ -126,6 +131,7 @@ ${p.done.e6 || p.route ? '' : '<p class="hint">完成第 6 集後，選擇你的
 
   // ───── 商店 ─────
   vShop() {
+    if (THEME.preview || THEME.shopEnabled === false) return '<h2 class="ttl">商店</h2><p class="hint">故事二暫不販售禮包或通行證。前四章免費，其後每章使用一張門票，可等待回復。進度、圖鑑與資源按故事分開保存。</p>';
     const P = CONFIG.products, s = Store.s;
     const card = (k, cls = '') => {
       const p = P[k], owned = (p.once && s.own[k]) || (p.own && s.own[p.own]);
@@ -146,8 +152,8 @@ ${s.own.first ? '' : card('first', 'hot')}<h3>會員</h3>${card('vipW')}${card('
     const lv = m => { const l = Eco.love(m); return `<div class="love"><span>${CHARS[m].name}</span><div class="lb"><i style="width:${clamp(s.p.love[m] / CONFIG.loveLevels[4] * 100, 0, 100)}%"></i></div><b>${CONFIG.loveNames[l]}</b></div>`; };
     return `<h2 class="ttl">我的</h2>
 <div class="stat"><div><b>${Object.keys(s.p.done).length}</b><small>已看集數</small></div><div><b>${s.p.slaps}</b><small>打臉次數</small></div><div><b>${s.p.power}</b><small>${THEME.power.name}</small></div></div>
-<h3>好感度</h3>${['gu', 'wen', 'xiao'].map(lv).join('')}
-<div class="love"><span>${CHARS.lu.name}</span><div class="lb lu"><i style="width:${clamp(s.p.love.lu, 0, 100)}%"></i></div><b>追妻火葬場</b></div>
+<h3>好感度</h3>${THEME.men.map(lv).join('')}
+${CHARS.lu ? `<div class="love"><span>${CHARS.lu.name}</span><div class="lb lu"><i style="width:${clamp(s.p.love.lu, 0, 100)}%"></i></div><b>追妻火葬場</b></div>` : ''}
 <h3>設定</h3>${tg('sfx', '音效')}${tg('music', '音樂')}${tg('vibe', '震動')}${tg('notif', '通知提醒')}
 <h3>資料</h3>
 <div class="row" data-a="savecode"><b>進度碼（備份／轉機）</b><span>›</span></div>
@@ -156,7 +162,7 @@ ${s.own.first ? '' : card('first', 'hot')}<h3>會員</h3>${card('vipW')}${card('
 <div class="row" data-a="privacy"><b>隱私政策</b><span>›</span></div>
 <div class="row" data-a="terms"><b>服務條款</b><span>›</span></div>
 <div class="row" data-a="support"><b>聯絡客服</b><span>${esc(CONFIG.legal.support)}</span></div>
-<div class="row danger" data-a="wipe"><b>刪除所有資料</b><span>›</span></div>
+<div class="row danger" data-a="wipe"><b>刪除此故事資料</b><span>›</span></div>
 <p class="ver" data-a="ver">v${CONFIG.version}　年滿 12 歲　含虛擬貨幣與廣告</p>`;
   },
 
@@ -172,7 +178,7 @@ ${s.own.first ? '' : card('first', 'hot')}<h3>會員</h3>${card('vipW')}${card('
     const s = Store.s;
     switch (k) {
       case 'shop': case 'tickets': this.go('shop'); break;
-      case 'continue': { const e = this.nextEp(); if (e) this.play(e); else this.toast('敬請期待第二季'); break; }
+      case 'continue': { const e = this.nextEp(); if (e) this.play(e); else this.toast(THEME.linear ? '可用時光回溯探索其他路線與結局' : THEME.preview ? '第 5–15 集製作中' : '敬請期待第二季'); break; }
       case 'ep': this.play(EPISODES.find(e => e.id === d.dataset.id)); break;
       case 'reply': {
         const m = s.msg; if (m.replied) break; m.replied = true; const man = this.msgMan(); s.p.love[man] += 1; Store.save();
@@ -194,13 +200,13 @@ ${s.own.first ? '' : card('first', 'hot')}<h3>會員</h3>${card('vipW')}${card('
       case 'savecode': { const c = Store.exportCode(); try { await navigator.clipboard.writeText(c); } catch (e) {} await this.modal(`<h3>進度碼</h3><p>已嘗試複製。請收好，換機時貼上。</p><textarea readonly>${c}</textarea><button class="btn" data-r="ok">好</button>`); break; }
       case 'loadcode': {
         const r = await this.modal(`<h3>輸入進度碼</h3><p>會覆蓋目前進度。</p><textarea id="code"></textarea><div class="two"><button class="btn ghost" data-r="no">取消</button><button class="btn gold" data-r="ok">匯入</button></div>`, { dismiss: false });
-        if (r === 'ok') { if (Store.importCode(this.lastInput)) { this.toast('匯入成功'); this.go('home'); } else this.toast('進度碼無效'); }
+        if (r === 'ok') { if (Store.importCode(this.lastInput)) { this.toast('匯入成功'); this.go('home'); } else this.toast('進度碼無效或屬於其他故事'); }
         break;
       }
       case 'privacy': case 'terms': this.legal(k); break;
       case 'support': this.toast(CONFIG.legal.support); break;
       case 'wipe': {
-        const r = await this.modal('<h3>刪除所有資料？</h3><p>進度、鑽石、圖鑑將全部清除，無法復原。（已購買項目請用「恢復購買」找回）</p><div class="two"><button class="btn ghost" data-r="no">取消</button><button class="btn danger" data-r="ok">刪除</button></div>');
+        const r = await this.modal('<h3>刪除此故事資料？</h3><p>此故事的進度、鑽石、圖鑑將清除，無法復原。（已購買項目請用「恢復購買」找回）</p><div class="two"><button class="btn ghost" data-r="no">取消</button><button class="btn danger" data-r="ok">刪除</button></div>');
         if (r === 'ok') { Store.reset(); try { localStorage.removeItem('slapqueen.ev'); } catch (e) {} this.go('home'); this.toast('已刪除'); }
         break;
       }
@@ -222,12 +228,12 @@ ${s.own.first ? '' : card('first', 'hot')}<h3>會員</h3>${card('vipW')}${card('
     const s = Store.s;
     if (r === 'dia') Eco.addDia(500, 'debug'); if (r === 'tk') Eco.addTicket(5);
     if (r === 'unlock') EPISODES.forEach(e => s.p.unlocked[e.id] = true);
-    if (r === 'love') ['gu', 'wen', 'xiao'].forEach(m => s.p.love[m] += 40);
+    if (r === 'love') THEME.men.forEach(m => s.p.love[m] += 40);
     if (r === 'ev') console.log(JSON.stringify(Analytics.dump()));
     Store.save(); this.render();
   },
   async dailyModal(day) {
-    const R = [[5], [5], [10], [10], [15], [15], [30, 'cg_week']];
+    const R = [[5], [5], [10], [10], [15], [15], (THEME.preview || THEME.linear) ? [30] : [30, 'cg_week']];
     const cells = R.map((r, i) => `<div class="day ${i + 1 < day ? 'got' : i + 1 === day ? 'now' : ''}"><small>第${i + 1}日</small><b>${r[1] ? '🖼' : '💎'}${r[0]}</b></div>`).join('');
     await this.modal(`<h3>每日登入</h3><p>連續登入第 ${day} 日</p><div class="days">${cells}</div><button class="btn gold" data-r="ok">領取</button>`, { dismiss: false });
     const r = R[day - 1]; Eco.addDia(r[0], 'daily'); if (r[1]) { Store.s.gal.cg[r[1]] = Date.now(); Store.save(); }
@@ -238,8 +244,10 @@ ${s.own.first ? '' : card('first', 'hot')}<h3>會員</h3>${card('vipW')}${card('
   async play(ep, o = {}) {
     if (!ep) return;
     const p = Store.s.p, done = !!p.done[ep.id], resume = !!(p.cur && p.cur.ep === ep.id);
+    if (THEME.terminalFlag && p.flags[THEME.terminalFlag] && !done && !resume) { this.toast('此輪已進入壞結局，請用時光回溯重試'); return; }
+    if (THEME.linear && !done && !resume && EPISODES.some(previous => previous.seq < ep.seq && !p.done[previous.id])) { this.toast('請先完成前一章'); return; }
     const replay = done;
-    if (!replay && !resume) {
+    if (!replay && !resume && !ep.free) {
       const gate = Eco.gateMs(ep); let paidSkip = false;
       if (gate > 0) {
         const r = await this.modal(`<h3>第${ep.seq}集 未到更新時間</h3><p>新劇集每日早上 8 點開放，還有 <b>${fmtTime(gate)}</b>。<br>等到時間後，每集再用 🎫 1 張門票觀看。</p><div class="col"><button class="btn gold" data-r="skip">💎 ${CONFIG.skipGateCost} 現在就看（已包含門票，不再扣 🎫）</button><button class="btn ghost" data-r="no">等明天（免費）</button></div>`);
@@ -302,13 +310,15 @@ ${s.own.first ? '' : card('first', 'hot')}<h3>會員</h3>${card('vipW')}${card('
   },
   routeSelect(host) {
     return new Promise(res => {
-      const s = Store.s, L = s.p.love, allOk = s.own.allpass || ['gu', 'wen', 'xiao'].every(m => L[m] >= CONFIG.allRouteLove);
+      const s = Store.s, L = s.p.love, threshold = THEME.allRouteLove ?? CONFIG.allRouteLove, allOk = s.own.allpass || THEME.men.every(m => L[m] >= threshold);
       const card = m => `<button class="rt" data-m="${m}"><div class="av">${Art.portrait(m, 'smile')}</div><div><b>${CHARS[m].name}</b><small>${esc(PROFILE[m].tag)}・${PROFILE[m].traits.join('／')}</small><small>${esc(THEME.routeName[m])}</small><u>好感：${CONFIG.loveNames[Eco.love(m)]}</u></div></button>`;
-      const v = el(`<div class="route"><h2>選擇你的路</h2><p>這一世，你想站在誰身邊？</p>${['gu', 'wen', 'xiao'].map(card).join('')}<button class="rt all ${allOk ? '' : 'locked'}" data-m="all"><div class="av ico">👑</div><div><b>${THEME.routeName.all}</b><small>${allOk ? '三人好感已達「心動」，隱藏線開啟' : '三人好感皆達「心動」，或購買通行證'}</small></div></button></div>`);
+      const allHint = THEME.linear ? (threshold === 0 ? '同時發展三條感情線；兼顧彼此的信任與選擇，才能走向特別結局。' : `三人好感皆需 ${threshold}，目前：${THEME.men.map(m => CHARS[m].name + ' ' + L[m]).join('／')}`) : (allOk ? '三人好感已達「心動」，隱藏線開啟' : '三人好感皆達「心動」，或購買通行證');
+      const solo = THEME.allowSolo ? `<button class="rt" data-m="solo"><div class="av ico">✦</div><div><b>全部不攻略・只選自己</b><small>專注作品與同行的夥伴，擁有獨立結局。</small></div></button>` : '';
+      const v = el(`<div class="route"><h2>選擇你的路</h2><p>這一世，你想站在誰身邊？</p>${THEME.men.map(card).join('')}<button class="rt all ${allOk ? '' : 'locked'}" data-m="all"><div class="av ico">👑</div><div><b>${THEME.routeName.all}</b><small>${esc(allHint)}</small></div></button>${solo}</div>`);
       host.appendChild(v);
       v.onclick = async e => {
         const b = e.target.closest('.rt'); if (!b) return; const m = b.dataset.m;
-        if (m === 'all' && !allOk) { if (await Monet.buy('allpass')) { v.remove(); res('all'); } return; }
+        if (m === 'all' && !allOk) { if (THEME.shopEnabled === false) { this.toast('先與三位男主建立默契，再選全攻略線；可用時光回溯重新選擇。'); return; } if (await Monet.buy('allpass')) { v.remove(); res('all'); } return; }
         Sfx.play('super'); v.remove(); res(m);
       };
     });
@@ -316,7 +326,7 @@ ${s.own.first ? '' : card('first', 'hot')}<h3>會員</h3>${card('vipW')}${card('
   endCard(host, ep, n, nxt, replay) {
     return new Promise(res => {
       const fin = n.finale, gate = nxt ? Eco.gateMs(nxt) : 0;
-      const v = el(`<div class="epend"><small>第${ep.seq}集 完</small><h2>${esc(ep.title)}</h2>${n.hook ? `<p class="hook">${esc(n.hook)}</p>` : ''}${replay ? '<small>重溫模式：不計獎勵</small>' : ''}<div class="col">${nxt && !fin ? `<button class="btn gold" data-g="next">▶ 下一集　${gate > 0 ? '⏳' + fmtTime(gate) : '🎫'}</button>` : ''}${fin ? '<button class="btn gold" data-g="gallery">看圖鑑</button>' : ''}<button class="btn ghost" data-g="home">返回</button></div></div>`);
+      const v = el(`<div class="epend"><small>第${ep.seq}集 完</small><h2>${esc(ep.title)}</h2>${n.hook ? `<p class="hook">${esc(n.hook)}</p>` : ''}${replay ? '<small>重溫模式：不計獎勵</small>' : ''}<div class="col">${nxt && !fin ? `<button class="btn gold" data-g="next">▶ 下一集　${gate > 0 ? '⏳' + fmtTime(gate) : nxt.free ? '免費' : '🎫'}</button>` : ''}${fin ? '<button class="btn gold" data-g="gallery">看圖鑑</button>' : ''}<button class="btn ghost" data-g="home">返回</button></div></div>`);
       host.appendChild(v);
       v.onclick = e => { const b = e.target.closest('[data-g]'); if (!b) return; const g = b.dataset.g; v.remove(); res(g === 'next' ? { go: 'next', next: nxt } : { go: g }); };
     });
@@ -332,10 +342,10 @@ ${s.own.first ? '' : card('first', 'hot')}<h3>會員</h3>${card('vipW')}${card('
     const r = await this.modal(`<h3>⏪ 時光回溯</h3><p>回到第 6 集選線之前，重新選擇男主。好感度與進度會還原。${cost ? '<br>需要 💎 ' + cost : '（VIP 免費）'}</p><div class="two"><button class="btn ghost" data-r="no">取消</button><button class="btn gold" data-r="ok">回溯</button></div>`);
     if (r !== 'ok') return;
     if (cost && !Eco.spendDia(cost, 'timeback')) { if (!await this.needDia(cost) || !Eco.spendDia(cost, 'timeback')) return; }
-    const e6 = EPISODES.find(e => e.id === 'e6'), idx = e6.nodes.findIndex(n => n.k === 'route');
+    const e6 = EPISODES.find(e => e.id === (THEME.routeEpisode || 'e6')), idx = e6.nodes.findIndex(n => n.k === 'route');
     Object.assign(p, JSON.parse(JSON.stringify(p.snap)), { route: null });
-    EPISODES.filter(e => e.route).forEach(e => delete p.done[e.id]);
-    delete p.done.e6; p.cur = { ep: 'e6', i: idx, rage: p.snap.rage, bg: null, cast: {} };
+    EPISODES.filter(e => THEME.linear ? e.seq >= e6.seq : e.route).forEach(e => { delete p.done[e.id]; for (const key of Object.keys(p.picks)) if (key.startsWith(e.id + '#')) delete p.picks[key]; });
+    delete p.done[e6.id]; p.cur = { ep: e6.id, i: idx, rage: p.snap.rage, bg: null, cast: {} };
     Store.save(); this.go('home'); this.toast('已回到選線之前');
   },
 
