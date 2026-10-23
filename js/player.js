@@ -383,7 +383,11 @@ const Player = {
   async ending(n) {
     const P = this.P, r = n.r;
     const love = P.love[r] || 0, slaps = P.slaps;
-    const grade = r === 'all' ? 'p' : (love >= CONFIG.loveLevels[3] && slaps >= 4) ? 'p' : (love < CONFIG.loveLevels[2] || slaps < 2) ? 't' : 'n';
+    const G = CONFIG.endGrade, L3 = ['gu', 'wen', 'xiao'].map(m => P.love[m] || 0);
+    let grade, shown = love;
+    if (r === 'all') { shown = Math.min(...L3); grade = shown >= G.all.p ? 'p' : 'n'; }
+    else if (r === 's2') { shown = P.route === 'all' ? Math.min(...L3) : (P.love[P.route] || 0); grade = (shown >= G.s2.p && P.flags.ning_ally) ? 'p' : shown < G.s2.t ? 't' : 'n'; }
+    else grade = (love >= G.s1.p && slaps >= G.s1.slaps) ? 'p' : love < G.s1.t ? 't' : 'n';
     this.speakers(null);
     await this.run(n[grade]);
     const key = `${r}_${grade}`;
@@ -393,7 +397,7 @@ const Player = {
       Analytics.track('ending', { key });
     }
     const L = this.$('.st-layer');
-    const card = el(`<div class="endcard ${grade}"><small>${grade === 'p' ? 'PERFECT ENDING' : grade === 'n' ? 'NORMAL ENDING' : 'BAD ENDING'}</small><h2>${esc(ENDINGS[key])}</h2><p>${esc(THEME.routeName[r])}　好感 ${love}　打臉 ${slaps} 次</p><span>已收錄至圖鑑</span></div>`);
+    const card = el(`<div class="endcard ${grade}"><small>${grade === 'p' ? 'PERFECT ENDING' : grade === 'n' ? 'NORMAL ENDING' : 'BAD ENDING'}</small><h2>${esc(ENDINGS[key])}</h2><p>${esc(THEME.routeName[r])}　好感 ${shown}　打臉 ${slaps} 次</p><span>已收錄至圖鑑</span></div>`);
     L.appendChild(card); Sfx.play(grade === 't' ? 'lose' : 'win'); await this.delay(600); await this.waitTap(0); card.classList.add('out'); await this.delay(300); card.remove();
   },
   async end(n) {

@@ -178,6 +178,12 @@ EP('s15', 15, '王座', 's2', [
       say('shen', '我只剩一個親人。你是。', { mood: 'sad' }),
       flag('ning_ally')
     ] }),
+    op('「我沒有姐姐。保險箱，法庭上見。」', 'n', { then: [
+      say('shen', '我沒有姐姐。保險箱，法庭上見。', { mood: 'cold' }),
+      say('ning', '……好。那就法庭上見。', { mood: 'cold' }),
+      nar('她轉身離開，背影挺得很直，肩膀卻在發抖。'),
+      flag('ning_cold')
+    ] }),
     op('「保險箱我要。你的身份，我也認。」', 's', { cost: 15, free: true, then: [
       say('shen', '保險箱，我會用法律拿回來。你，是我姐姐，這點，我也會用法律證明。', { mood: 'cold' }),
       say('ning', '你……不怕我再害你？', { mood: 'shock' }),
@@ -185,12 +191,17 @@ EP('s15', 15, '王座', 's2', [
       flag('ning_ally')
     ] })
   ]),
-  mus('triumph'),
-  hit('ning', '認親'),
-  say('ning', '……知意。', { mood: 'sad' }),
-  nar('她第一次，叫了我的名字。眼淚，沒有聲音地掉了下來。'),
-  slap('ning', '血脈相認', { cg: 'cg_ning_fall', danmaku: DM.boss }),
-  cr('法院外的長階上，兩個長得很像的女人，終於並肩站着。'),
+  iff('flag.ning_ally', [
+    mus('triumph'),
+    hit('ning', '認親'),
+    say('ning', '……知意。', { mood: 'sad' }),
+    nar('她第一次，叫了我的名字。眼淚，沒有聲音地掉了下來。'),
+    slap('ning', '血脈相認', { cg: 'cg_ning_fall', danmaku: DM.boss }),
+    cr('法院外的長階上，兩個長得很像的女人，終於並肩站着。'),
+  ], [
+    th('她走了。法院外的長階，忽然變得很長。'),
+    th('我贏回了保險箱。卻好像，又弄丟了什麼。')
+  ]),
   clear(), bg('boardroom'),
   nar('董事會。所有人起立。'),
   show('shen', 'c', 'smile', 'suit'),
@@ -199,15 +210,29 @@ EP('s15', 15, '王座', 's2', [
   cr('掌聲，從角落開始，慢慢，響成一片。'),
   cgShow('cg_throne'),
   nar('她站在落地窗前，俯瞰整座城市。這一世，不再有人，能把她推下去。'),
+  clear(), bg('room'),
+  show('shen', 'l', 'smile', 'plain'), show('fa', 'r', 'smile'),
+  say('fa', '知意，你媽媽要是看見今天，一定會笑。', { mood: 'smile' }),
+  say('shen', '爸，我把她的名字，放回去了。', { mood: 'smile' }),
+  say('fa', '她的裙子，你穿得比她還好看。', { mood: 'smile' }),
+  th('白玉鐲內側，那道裂縫，不知什麼時候，合起來了。'),
   clear(), bg('street'),
   show('shen', 'l', 'smile', 'suit'),
+  ending('s2',
+    [iff('flag.ning_ally', [show('ning', 'r', 'smile', 'suit'), say('ning', '姐。今晚的飯，我煮。', { mood: 'smile' })]),
   rb(
     [show('gu', 'r', 'smile'), say('gu', '知意。', { mood: 'smile' }), say('gu', '我說過，我不會說好聽的話。但是——嫁給我。', { mood: 'smile' }), say('gu', '用你的方式，管着我一輩子。', {}), cgShow('cg_gu_conf')],
     [show('wen', 'r', 'smile'), say('wen', '知意。', { mood: 'smile' }), say('wen', '我不要再當你的「青梅竹馬」了。可以嗎？讓我當你的丈夫。', { mood: 'smile' }), say('wen', '我會問一輩子，每一次，都等你說好。', {}), cgShow('cg_wen_conf')],
     [show('xiao', 'r', 'smile'), say('xiao', '喂，沈知意。', { mood: 'smirk' }), say('xiao', '這次，我不賭了。我認輸。嫁給我，笨蛋。', { mood: 'smile' }), say('xiao', '（耳根又紅了）別看。', {}), cgShow('cg_xiao_conf')],
     [show('gu', 'l', 'smile'), show('wen', 'c', 'smile'), show('xiao', 'r', 'smile'), say('gu', '我們三個，商量好了。', { mood: 'smile' }), say('wen', '你不必選。', { mood: 'smile' }), say('xiao', '你想要誰，我們都在。哼。', { mood: 'smirk' }), cgShow('cg_trio_back')]
   ),
-  th('二十年的黑夜，一個接一個的局。我走到了這裡。'),
-  th('從今以後，我不再是任何人的棋子。我是自己的王座。'),
+     th('二十年的黑夜，一個接一個的局。我走到了這裡。'),
+     th('從今以後，我不再是任何人的棋子。我是自己的王座，也有人，陪我坐。')],
+    [nar('董事會散了，慶功宴也散了。她一個人，站在落地窗前。'),
+     rb([say('gu', '我在。', {})], [say('wen', '我在。', {})], [say('xiao', '喂，我在。', { mood: 'smirk' })], [say('gu', '我們都在。', {})]),
+     th('王座很高，風很大。可是這一世，我至少，沒有再摔下去。')],
+    [nar('沈晚集團的燈火，照亮了整座城。她卻，一個人，回了家。'),
+     th('我贏了所有人，卻好像，沒有人，可以分享。'),
+     th('母親，這就是你說的「坦蕩」嗎？……我還在學。')]),
   end('第二季・完', { finale: true })
 ]);
