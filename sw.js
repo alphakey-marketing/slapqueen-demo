@@ -1,5 +1,5 @@
 // 簡單離線快取：先網絡，失敗用快取
-const C = 'sq-v12';
+const C = 'sq-v13';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {
