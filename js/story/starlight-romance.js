@@ -50,7 +50,8 @@ if (STORY_ID === 'starlight') {
   EPISODES.forEach(ep => { ep.nodes = clean(ep.nodes); });
 
   const scene = (id, m, title, lines, options, condition, fallback = []) => {
-    const body = [clear(), bg(m === 'jiang' ? 'backstage' : m === 'qi' ? 'boardroom' : 'room'), mus('calm'), show('lin', 'c', 'normal'), show(m, 'l', 'normal'),
+    const location = id.endsWith('_consent') || id === 'qi_heart' || id === 'qi_bond' ? 'street' : id === 'sheng_bond' ? 'gala' : m === 'qi' ? 'boardroom' : 'backstage';
+    const body = [clear(), bg(location), mus('calm'), show('lin', 'c', 'normal'), show(m, 'l', 'normal'),
       nar(`〔${title}〕`), ...lines.map(([who, text]) => say(who, text)),
       { ...choice(options.q, options.items.map(([text, score, after, marks = []]) => op(text, 'n', { then: [
         ...after.map(([who, t]) => say(who, t)), ...(score ? [love(m, score)] : []), ...marks.map(flag)
