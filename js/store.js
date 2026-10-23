@@ -4,7 +4,7 @@ const Store = (() => {
   const fresh = () => ({
     v: 1, story: STORY_ID, t0: Date.now(), tickets: CONFIG.startTickets, tAt: Date.now(), dia: 0,
     vipUntil: 0, own: { season: false, allpass: false, first: false },
-    p: { done: {}, route: null, flags: {}, love: { gu: 0, wen: 0, xiao: 0, lu: 0, sheng: 0, jiang: 0, qi: 0 }, power: 0, rage: 0, items: { precog: 0 }, slaps: 0, picks: {}, snap: null, unlocked: {}, cur: null },
+    p: { romanceVersion: STORY_ID === 'starlight' ? 2 : 0, done: {}, route: null, flags: {}, love: { gu: 0, wen: 0, xiao: 0, lu: 0, sheng: 0, jiang: 0, qi: 0 }, power: 0, rage: 0, items: { precog: 0 }, slaps: 0, picks: {}, snap: null, unlocked: {}, cur: null },
     gal: { cg: {}, end: {}, chr: {}, claimed: {} },
     daily: { last: '', streak: 0 }, ads: { day: '', n: 0 }, msg: { day: '', replied: false, idx: 0 },
     tut: { gift: false, firstShown: false, savePrompt: false, notifAsked: false },
@@ -12,8 +12,23 @@ const Store = (() => {
     vipDaily: ''
   });
   let s;
+  const upgrade = j => {
+    if (STORY_ID !== 'starlight' || j.p?.romanceVersion === 2) return j;
+    if (j.p?.cur || j.p?.route || Object.keys(j.p?.done || {}).length) {
+      // Back up before changing any plot state. A failed backup must not erase a save.
+      localStorage.setItem(KEY + '.before-organic-v2.' + Date.now(), JSON.stringify(j));
+      return { ...j, p: fresh().p, romanceRestart: true, romanceUpgradeBlocked: false };
+    }
+    return { ...j, p: { ...fresh().p, ...j.p, romanceVersion: 2 } };
+  };
   const load = () => {
-    try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.v === 1) { s = deepMerge(fresh(), j); return; } } catch (e) {}
+    let j;
+    try { j = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+    if (j && j.v === 1) {
+      try { s = deepMerge(fresh(), upgrade(j)); }
+      catch (e) { s = deepMerge(fresh(), j); s.p.romanceVersion = j.p?.romanceVersion || 0; s.romanceUpgradeBlocked = true; }
+      return;
+    }
     s = fresh();
   };
   const deepMerge = (a, b) => { for (const k in b) a[k] = (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k]) && a[k]) ? deepMerge(a[k], b[k]) : b[k]; return a; };
@@ -26,7 +41,7 @@ const Store = (() => {
     reset() { s = fresh(); save(); },
     // 進度碼：unicode 安全 base64
     exportCode() { return btoa(unescape(encodeURIComponent(JSON.stringify(s)))); },
-    importCode(c) { try { const j = JSON.parse(decodeURIComponent(escape(atob(c.trim())))); if (j.v !== 1 || (j.story || 'rebirth') !== STORY_ID) return false; s = deepMerge(fresh(), j); save(); return true; } catch (e) { return false; } }
+    importCode(c) { try { const j = JSON.parse(decodeURIComponent(escape(atob(c.trim())))); if (j.v !== 1 || (j.story || 'rebirth') !== STORY_ID) return false; s = deepMerge(fresh(), upgrade(j)); save(); return true; } catch (e) { return false; } }
   };
   return api;
 })();

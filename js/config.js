@@ -1,7 +1,7 @@
 // 全局設定。上線前只改呢度。
 window.CONFIG = {
   appName: '重生打臉女王',
-  version: '1.0.0',
+  version: '1.2.0',
   // billing: 'mock' = 測試模式（假廣告、假購買），'live' = 接真 SDK（見 docs/LAUNCH.md）
   billing: 'mock',
   analyticsUrl: '',          // 有後端先填，空 = 只存本機

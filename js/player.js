@@ -8,7 +8,20 @@ const Player = {
   async start(ep, { replay = false, resume = false } = {}) {
     this.ep = ep; this.replay = replay; this.choiceN = 0; this.ff = false; this.ended = false;
     const real = Store.s.p;
+    if (!replay && real.eventTxn) {
+      const txn = real.eventTxn;
+      real.love = txn.love; real.flags = txn.flags; real.cur = txn.cur;
+      delete real.eventTxn; Store.save();
+    }
     this.P = replay ? JSON.parse(JSON.stringify(real)) : real;
+    if (THEME.organicRomance) {
+      if (replay && real.starts?.[ep.id]) Object.assign(this.P, JSON.parse(JSON.stringify(real.starts[ep.id])));
+      if (!replay && !resume) {
+        real.starts ||= {};
+        real.starts[ep.id] = JSON.parse(JSON.stringify({ love: real.love, flags: real.flags, route: real.route, slaps: real.slaps, power: real.power, rage: real.rage }));
+        Store.save();
+      }
+    }
     if (replay) this.P.rage = 0;
     this.cast = {}; this.bgId = null;
     this.el.innerHTML = this.tpl();
@@ -17,6 +30,7 @@ const Player = {
     let from = 0;
     if (resume && real.cur && real.cur.ep === ep.id) {
       from = real.cur.i; this.P.rage = real.cur.rage;
+      this.choiceN = real.cur.choiceN || 0;
       if (real.cur.bg) this.setBg(real.cur.bg, true);
       this.cast = real.cur.cast || {}; this.drawChars(); this.hud();
     } else if (!replay) { real.cur = null; Analytics.track('ep_start', { ep: ep.id }); }
@@ -71,12 +85,12 @@ const Player = {
   checkpoint(i) {
     if (this.replay) return;
     const P = this.P;
-    P.cur = { ep: this.ep.id, i, rage: P.rage, bg: this.bgId, cast: JSON.parse(JSON.stringify(this.cast)) };
+    P.cur = { ep: this.ep.id, i, choiceN: this.choiceN, rage: P.rage, bg: this.bgId, cast: JSON.parse(JSON.stringify(this.cast)) };
     Store.save();
   },
 
   async run(list, from = 0, top = false) {
-    const MUT = new Set(['choice', 'game', 'slap', 'give', 'love', 'flag', 'rage', 'route', 'ending', 'cg', 'sys', 'if']);
+    const MUT = new Set(['choice', 'game', 'slap', 'give', 'love', 'flag', 'rage', 'route', 'snapshot', 'event', 'ending', 'cg', 'sys', 'if']);
     for (let i = from; i < list.length; i++) {
       const n = list[i];
       await this.exec(n, i);
@@ -122,8 +136,18 @@ const Player = {
       case 'fx': await this.fx(n.name); break;
       case 'rage': P.rage = n.set; this.hud(); break;
       case 'flag': P.flags[n.f] = true; break;
-      case 'love': if (!this.replay) await this.addLove(n.m, n.n); break;
+      case 'love': if (!this.replay) await this.addLove(n.m, n.n); else if (THEME.organicRomance) P.love[n.m] = clamp((P.love[n.m] || 0) + n.n, 0, 100); break;
       case 'if': await this.run(this.cond(n.c) ? n.then : n.els); break;
+      case 'snapshot': if (!this.replay) P.snap = JSON.parse(JSON.stringify({ love: P.love, power: P.power, rage: P.rage, items: P.items, slaps: P.slaps, flags: P.flags })); break;
+      case 'event': {
+        if (!this.replay) {
+          this.checkpoint(idx);
+          P.eventTxn = JSON.parse(JSON.stringify({ love: P.love, flags: P.flags, cur: P.cur })); Store.save();
+        }
+        await this.run(n.nodes);
+        if (!this.replay) { delete P.eventTxn; this.checkpoint(idx + 1); }
+        break;
+      }
       case 'route': await this.route(); break;
       case 'ending': await this.ending(n); break;
       case 'end': await this.end(n); break;
@@ -372,13 +396,14 @@ const Player = {
 
   // ───── 選線 / 結局 / 完結 ─────
   async route() {
-    if (this.replay) { return; }
+    if (this.replay) { if (THEME.organicRomance) this.P.route = Store.s.p.confirmedRelationship || 'solo'; return; }
     const P = this.P;
     this.$('.st-box').className = 'st-box';
-    P.snap = JSON.parse(JSON.stringify({ love: P.love, power: P.power, rage: P.rage, items: P.items, slaps: P.slaps, flags: P.flags }));
+    if (!THEME.organicRomance) P.snap = JSON.parse(JSON.stringify({ love: P.love, power: P.power, rage: P.rage, items: P.items, slaps: P.slaps, flags: P.flags }));
     const choice = await this.race(UI.routeSelect(this.$('.st-layer')));
-    P.route = choice; Store.save(); Analytics.track('route', { r: choice });
-    if (choice === 'all') P.rage = Math.max(P.rage, 100);
+    P.route = choice; if (THEME.organicRomance) P.confirmedRelationship = choice;
+    Store.save(); Analytics.track('route', { r: choice });
+    if (choice === 'all' && !THEME.organicRomance) P.rage = Math.max(P.rage, 100);
     const names = THEME.routeName; this.floatText(`選擇：${names[choice]}`, 1); await this.delay(1000);
   },
   endingResult(r, P) {
@@ -386,6 +411,13 @@ const Player = {
     const G = THEME.endGrade || CONFIG.endGrade, L3 = THEME.men.map(m => P.love[m] || 0);
     let grade, shown = love;
     if (G.fixed && G.fixed[r]) { grade = G.fixed[r]; shown = 0; }
+    else if (THEME.organicRomance && r !== 'solo') {
+      const men = r === 'all' ? THEME.men : [r];
+      shown = Math.min(...men.map(m => P.love[m] || 0));
+      const complete = men.every(m => ['heart_', 'resolved_', 'consent_'].every(f => P.flags[f + m]));
+      const perfect = shown >= (r === 'all' ? G.all.p : G.s1.p) && slaps >= G.s1.slaps && complete && P.flags.promise_kept && (r !== 'all' || P.flags.all_honest);
+      grade = P.flags.promise_broken || shown < G.s1.t ? 't' : perfect ? 'p' : 'n';
+    }
     else if (r === 'solo' && G.solo) { shown = G.solo.flags.filter(f => P.flags[f]).length; grade = shown >= G.solo.p ? 'p' : shown < G.solo.t ? 't' : 'n'; }
     else if (r === 'all') { shown = Math.min(...L3); grade = shown >= G.all.p && (!G.requiredFlags || G.requiredFlags.every(f => P.flags[f])) ? 'p' : G.all.t != null && shown < G.all.t ? 't' : 'n'; }
     else if (r === 's2') { shown = P.route === 'all' ? Math.min(...L3) : (P.love[P.route] || 0); grade = (shown >= G.s2.p && P.flags.ning_ally) ? 'p' : shown < G.s2.t ? 't' : 'n'; }

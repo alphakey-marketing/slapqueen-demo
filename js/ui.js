@@ -88,9 +88,10 @@ const UI = {
     const list = this.epList();
     return `<div class="story-picker" aria-label="選擇故事">${Object.entries(STORIES).map(([id, story]) => `<a class="story-card ${id === STORY_ID ? 'on' : ''}" href="?story=${id}" ${id === STORY_ID ? 'aria-current="page"' : ''}><b>${esc(story.title)}</b><small>${esc(story.status)}</small></a>`).join('')}</div><div class="hero ${THEME.linear || THEME.preview ? 'story-hero' : ''}"><div class="hero-art">${hero}</div><div class="hero-t"><h1>${esc(THEME.title)}</h1><p>${esc(THEME.sub)}</p></div></div>
 <button class="btn big gold" data-a="continue">${nx ? (p.cur ? '▶ 繼續第' + nx.seq + '集' : (started ? '▶ 第' + nx.seq + '集　' + nx.title : '▶ 開始遊戲')) : (THEME.linear ? '✦ 本故事已完結・可回溯探索其他結局' : THEME.preview ? '✦ 試玩已完成・後續製作中' : '✦ 第一季已完結')}</button>${msg}
-<div class="sec"><h3>劇集</h3>${p.route ? `<button class="link" data-a="timeback">⏪ 時光回溯</button>` : ''}</div>
+<div class="sec"><h3>劇集</h3>${p.route || (THEME.organicRomance && p.snap) ? `<button class="link" data-a="timeback">⏪ 時光回溯</button>` : ''}</div>
 <div class="eps">${list.map(e => this.epRow(e)).join('')}</div>
-${THEME.linear ? '<p class="hint">全 15 章・前 4 章免費。第 6 章可選單人、全攻略或不攻略；結局依好感與關鍵選擇改變。</p>' : THEME.preview ? '<p class="hint">全作規劃 15 集・目前開放前 4 集免費試玩；第 6 集選線尚未開放。</p>' : p.done.e6 || p.route ? '' : '<p class="hint">完成第 6 集後，選擇你的男主線</p>'}`;
+${Store.s.romanceRestart ? '<p class="hint">感情劇情已更新，請從第一章重新體驗。舊版進度已備份，資源與圖鑑保留。</p>' : ''}
+${THEME.organicRomance ? '<p class="hint">全 15 章・前 4 章免費。不預選攻略對象；相處與選擇會開啟不同事件，第 14 章按共同經歷確認關係。</p>' : THEME.linear ? '<p class="hint">全 15 章・前 4 章免費。第 6 章可選單人、全攻略或不攻略；結局依好感與關鍵選擇改變。</p>' : THEME.preview ? '<p class="hint">全作規劃 15 集・目前開放前 4 集免費試玩；第 6 集選線尚未開放。</p>' : p.done.e6 || p.route ? '' : '<p class="hint">完成第 6 集後，選擇你的男主線</p>'}`;
   },
   epRow(e) {
     const p = Store.s.p;
@@ -242,6 +243,7 @@ ${CHARS.lu ? `<div class="love"><span>${CHARS.lu.name}</span><div class="lb lu">
 
   // ───── 開播流程 ─────
   async play(ep, o = {}) {
+    if (Store.s.romanceUpgradeBlocked) { this.toast('儲存空間不足，舊進度未能備份。請先匯出進度碼並騰出空間，再重新開啟。'); return; }
     if (!ep) return;
     const p = Store.s.p, done = !!p.done[ep.id], resume = !!(p.cur && p.cur.ep === ep.id);
     if (THEME.terminalFlag && p.flags[THEME.terminalFlag] && !done && !resume) { this.toast('此輪已進入壞結局，請用時光回溯重試'); return; }
@@ -267,6 +269,7 @@ ${CHARS.lu ? `<div class="love"><span>${CHARS.lu.name}</span><div class="lb lu">
       }
       if (!paidSkip) Eco.useTicket();
     }
+    if (THEME.organicRomance && ep.seq === 1 && !replay && Store.s.romanceRestart) { Store.s.romanceRestart = false; Store.save(); }
     this.startStage(ep, replay, resume);
   },
   async startStage(ep, replay, resume) {
@@ -309,6 +312,7 @@ ${CHARS.lu ? `<div class="love"><span>${CHARS.lu.name}</span><div class="lb lu">
     return Store.s.dia >= cost;
   },
   routeSelect(host) {
+    if (THEME.organicRomance) return this.confirmRelationship(host);
     return new Promise(res => {
       const s = Store.s, L = s.p.love, threshold = THEME.allRouteLove ?? CONFIG.allRouteLove, allOk = s.own.allpass || THEME.men.every(m => L[m] >= threshold);
       const card = m => `<button class="rt" data-m="${m}"><div class="av">${Art.portrait(m, 'smile')}</div><div><b>${CHARS[m].name}</b><small>${esc(PROFILE[m].tag)}・${PROFILE[m].traits.join('／')}</small><small>${esc(THEME.routeName[m])}</small><u>好感：${CONFIG.loveNames[Eco.love(m)]}</u></div></button>`;
@@ -320,6 +324,19 @@ ${CHARS.lu ? `<div class="love"><span>${CHARS.lu.name}</span><div class="lb lu">
         const b = e.target.closest('.rt'); if (!b) return; const m = b.dataset.m;
         if (m === 'all' && !allOk) { if (THEME.shopEnabled === false) { this.toast('先與三位男主建立默契，再選全攻略線；可用時光回溯重新選擇。'); return; } if (await Monet.buy('allpass')) { v.remove(); res('all'); } return; }
         Sfx.play('super'); v.remove(); res(m);
+      };
+    });
+  },
+  confirmRelationship(host) {
+    return new Promise(res => {
+      const p = Player.P;
+      const eligible = m => m === 'solo' || (m === 'all' ? THEME.allEligible(p) : THEME.relationshipEligible(m, p));
+      const cards = THEME.men.map(m => `<button class="rt ${eligible(m) ? '' : 'locked'}" data-m="${m}" aria-disabled="${!eligible(m)}"><div class="av">${Art.portrait(m, 'smile')}</div><div><b>${CHARS[m].name}</b><small>${eligible(m) ? '回應這段相處，試著正式交往。' : '尚未互相表明心意，或已約定保持朋友。'}</small></div></button>`).join('');
+      const v = el(`<div class="route"><h2>回應已經發生的心意</h2><p>這不是挑選劇本。只有彼此曾經靠近的關係，才會收到答案；你也可以選擇獨立生活。</p>${cards}<button class="rt ${eligible('all') ? '' : 'locked'}" data-m="all" aria-disabled="${!eligible('all')}"><div class="av ico">✦</div><div><b>與三人坦白，共同商量</b><small>三段關係都需經歷心動，並各自願意繼續；不以通行證解鎖。</small></div></button><button class="rt" data-m="solo"><div class="av ico">☀</div><div><b>現在不建立戀愛關係</b><small>珍惜同行，把自己的生活留給自己。</small></div></button></div>`);
+      host.appendChild(v);
+      v.onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; const m = b.dataset.m;
+        if (!eligible(m)) { this.toast('共同經歷與彼此的意願尚未足夠；可以回溯重新體驗，也可以選擇獨立生活。'); return; }
+        Sfx.play('pick'); v.remove(); res(m);
       };
     });
   },
@@ -339,14 +356,15 @@ ${CHARS.lu ? `<div class="love"><span>${CHARS.lu.name}</span><div class="lb lu">
   async timeBack() {
     const p = Store.s.p; if (!p.snap) return;
     const cost = Eco.isVip() ? 0 : 30;
-    const r = await this.modal(`<h3>⏪ 時光回溯</h3><p>回到第 6 集選線之前，重新選擇男主。好感度與進度會還原。${cost ? '<br>需要 💎 ' + cost : '（VIP 免費）'}</p><div class="two"><button class="btn ghost" data-r="no">取消</button><button class="btn gold" data-r="ok">回溯</button></div>`);
+    const r = await this.modal(`<h3>⏪ 時光回溯</h3><p>${THEME.organicRomance ? '回到第 2 集開始，重新經歷相處與分支。' : '回到第 6 集選線之前，重新選擇男主。'}好感度與進度會還原。${cost ? '<br>需要 💎 ' + cost : '（VIP 免費）'}</p><div class="two"><button class="btn ghost" data-r="no">取消</button><button class="btn gold" data-r="ok">回溯</button></div>`);
     if (r !== 'ok') return;
     if (cost && !Eco.spendDia(cost, 'timeback')) { if (!await this.needDia(cost) || !Eco.spendDia(cost, 'timeback')) return; }
-    const e6 = EPISODES.find(e => e.id === (THEME.routeEpisode || 'e6')), idx = e6.nodes.findIndex(n => n.k === 'route');
+    const e6 = EPISODES.find(e => e.id === (THEME.routeEpisode || 'e6')), idx = THEME.organicRomance ? 0 : e6.nodes.findIndex(n => n.k === 'route');
     Object.assign(p, JSON.parse(JSON.stringify(p.snap)), { route: null });
+    if (THEME.organicRomance) { delete p.eventTxn; delete p.confirmedRelationship; p.starts = {}; }
     EPISODES.filter(e => THEME.linear ? e.seq >= e6.seq : e.route).forEach(e => { delete p.done[e.id]; for (const key of Object.keys(p.picks)) if (key.startsWith(e.id + '#')) delete p.picks[key]; });
     delete p.done[e6.id]; p.cur = { ep: e6.id, i: idx, rage: p.snap.rage, bg: null, cast: {} };
-    Store.save(); this.go('home'); this.toast('已回到選線之前');
+    Store.save(); this.go('home'); this.toast(THEME.organicRomance ? '已回到第 2 集，相處與心意重新開始' : '已回到選線之前');
   },
 
   // ───── 測試模式：假廣告／假購買 ─────
