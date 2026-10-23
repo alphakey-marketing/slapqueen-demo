@@ -387,7 +387,7 @@ const Player = {
     let grade, shown = love;
     if (G.fixed && G.fixed[r]) { grade = G.fixed[r]; shown = 0; }
     else if (r === 'solo' && G.solo) { shown = G.solo.flags.filter(f => P.flags[f]).length; grade = shown >= G.solo.p ? 'p' : shown < G.solo.t ? 't' : 'n'; }
-    else if (r === 'all') { shown = Math.min(...L3); grade = shown >= G.all.p && (!G.requiredFlags || G.requiredFlags.every(f => P.flags[f])) ? 'p' : 'n'; }
+    else if (r === 'all') { shown = Math.min(...L3); grade = shown >= G.all.p && (!G.requiredFlags || G.requiredFlags.every(f => P.flags[f])) ? 'p' : G.all.t != null && shown < G.all.t ? 't' : 'n'; }
     else if (r === 's2') { shown = P.route === 'all' ? Math.min(...L3) : (P.love[P.route] || 0); grade = (shown >= G.s2.p && P.flags.ning_ally) ? 'p' : shown < G.s2.t ? 't' : 'n'; }
     else grade = (love >= G.s1.p && slaps >= G.s1.slaps && (!G.requiredFlags || G.requiredFlags.every(f => P.flags[f]))) ? 'p' : love < G.s1.t ? 't' : 'n';
     return { grade, shown };

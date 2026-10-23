@@ -3,7 +3,7 @@ if (STORY_ID === 'starlight') {
   Object.assign(THEME, {
     preview: false, linear: true, allowSolo: true, shopEnabled: false,
     routeEpisode: 'star6', allRouteLove: 0, terminalFlag: 'plot_failed',
-    endGrade: { fixed: { story: 't' }, s1: { p: 40, t: 18, slaps: 10 }, all: { p: 31 }, requiredFlags: ['memory_confessed', 'save_rival'], solo: { flags: ['own_voice', 'crew_credit', 'save_rival', 'independent_cut'], p: 3, t: 1 } }
+    endGrade: { fixed: { story: 't' }, s1: { p: 40, t: 18, slaps: 10 }, all: { p: 31, t: 18 }, requiredFlags: ['memory_confessed', 'save_rival'], solo: { flags: ['own_voice', 'crew_credit', 'save_rival', 'independent_cut'], p: 3, t: 1 } }
   });
   THEME.routeName.all = '全攻略・星光不設限';
   THEME.routeName.solo = '不攻略・只選自己';
@@ -14,7 +14,7 @@ if (STORY_ID === 'starlight') {
     sheng_p: '不再沉默的告白', sheng_n: '下一場，仍有座位', sheng_t: '沒寄出的回信',
     jiang_p: '少年到歸人', jiang_n: '散場後的安可', jiang_t: '沒有合唱的最後一首',
     qi_p: '合約之外的同行', qi_n: '未簽日期的邀請', qi_t: '到期不續的合約',
-    all_p: '特別結局・星光不設限', all_n: '三盞未熄的燈',
+    all_p: '特別結局・星光不設限', all_n: '三盞未熄的燈', all_t: '全攻略遺憾・散場後各自遠行',
     solo_p: '獨立結局・以我之名', solo_n: '獨立結局・慢慢亮起的燈', solo_t: '獨立結局・王座不是家'
   });
   const scg = (id, name, background, cast, line) => { CGS[id] = { id, name, bg: background, cast, line, composite: true }; };
@@ -686,6 +686,13 @@ if (STORY_ID === 'starlight') {
         say('lin', '我在意你們。但還有些話沒有說清，也沒有準備好承諾每一個明天。'),
         say('sheng', '那就先別承諾。'), say('jiang', '不假裝沒事，也不急著散場。'), say('qi', '先尊重現在真正能做到的事。'),
         nar('三盞燈留在不同的街口。他們都繼續自己的生活，沒有把等待包裝成誰欠誰的愛。'), nar('有些關係還在路上。她的作品，已經完整抵達。')
+      ], [
+        nar('晚星訂好四人的位子，卻發現那只是自己對未來的想像。她很久沒有認真問過，每個人真正想要的是什麼。'),
+        say('sheng', '我們一起把作品做好了。但感情不能只靠留一個座位。'),
+        say('jiang', '我不是要贏過誰。只是每次想把話說完，都被留到下一次。'),
+        say('qi', '如果有人始終沒有被聽見，就不能說這是一段大家都選擇的關係。'),
+        say('lin', '我把你們都留在身邊，卻忘了靠近任何一個人。'),
+        nar('那晚沒有四人的承諾。他們各自離開，也各自保留曾經一起完成作品的記憶。她的事業繼續，這一段感情卻已散場。')
       ])
     ], [
       ending('solo', [
